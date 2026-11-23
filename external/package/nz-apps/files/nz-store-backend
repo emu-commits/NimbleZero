@@ -66,7 +66,7 @@ refresh)
 	grep -q '^Package: ' $C/Packages.new || fail "the downloaded index is not a package list"
 	mv $C/Packages.new $C/Packages
 	build_catalogue $C/Packages || fail "the index contains no usable entries"
-	date +%s > $C/refreshed
+	date +%s > $C/refreshed && chmod 644 $C/refreshed      # read by the menu (normal user)
 	echo "$(wc -l < $C/catalogue.tsv) apps in the index."
 	;;
 install)
