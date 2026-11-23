@@ -37,13 +37,19 @@ O1 key O opens Options as user zero :: p=$(pidof nz-pick); awk '/^Uid:/{print "n
 @key x x ret
 @sleep 3
 O2 brightness chosen in the menu is stored (30 %) :: cat /data/etc/nz/brightness; [ "$(cat /data/etc/nz/brightness)" = 30 ]
-@key x x x x x x x ret
+@key x x x x x x x x x x ret
 @sleep 3
 O3 boot log switched off from the menu :: cat /data/etc/nz/bootlog; [ "$(cat /data/etc/nz/bootlog)" = off ]
 @shot options-after-changes
 @key ret
 @sleep 3
-O4 and on again (it stays on by default in this release) :: cat /data/etc/nz/bootlog; [ "$(cat /data/etc/nz/bootlog)" = on ]
+O4 and on again (it stays on by default in this release) :: nz-admin get wifi-boot > /tmp/wifi-boot.0; cat /data/etc/nz/bootlog; [ "$(cat /data/etc/nz/bootlog)" = on ]
+@key f f f f f ret
+@sleep 3
+O5 Wi-Fi at start switched from the menu, and the helper reports it :: echo "was $(cat /tmp/wifi-boot.0), now $(nz-admin get wifi-boot)"; [ "$(nz-admin get wifi-boot)" != "$(cat /tmp/wifi-boot.0)" ] && [ "$(cat /data/etc/nz/wifi-boot)" = "$(nz-admin get wifi-boot)" ]
+@key ret
+@sleep 3
+O6 and back again :: nz-admin status | grep -E '^(wifi-boot|usb)='; [ "$(nz-admin get wifi-boot)" = "$(cat /tmp/wifi-boot.0)" ]
 # ---- Services: SSH off and on ----
 @key x x ret
 @sleep 3

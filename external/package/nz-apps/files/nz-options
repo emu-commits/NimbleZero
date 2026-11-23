@@ -44,6 +44,14 @@ timezone() {
 	n=$(pick "Time zone: $r" < /tmp/nz-tz.$$) && $A set timezone "$r/$(sed -n "${n}p" /tmp/nz-tz.$$)"
 	rm -f /tmp/nz-tz.$$
 }
+wifi_now() {
+	if [ "$(val wifi-power)" = on ]; then $A wifi-power off
+	else clear; echo "Starting Wi-Fi..."; $A wifi-power on || pause; fi
+}
+usb() {
+	if [ "$(val usb)" = on ]; then $A usb off
+	else clear; echo "Starting USB..."; $A usb on || pause; fi
+}
 launcher() {
 	n=$(printf '%s\n' "NimbleZero launcher${TAB}${TAB}this launcher" "M5 launcher${TAB}${TAB}M5Stack APPLaunch (install it from the Store)" | pick "Launcher at start") || return
 	if [ $n = 2 ]; then
@@ -80,7 +88,10 @@ while :; do
 		"Screen off after$TAB$(secs "$(val screen-off)")" \
 		"Volume$TAB$(val volume)" \
 		"Wi-Fi network$TAB$(ssid | cut -c1-14)${TAB}choose, replace or forget a network" \
+		"Wi-Fi$TAB$(val wifi-power)${TAB}radio now; off saves power" \
+		"Wi-Fi at start$TAB$(val wifi-boot)${TAB}connect to the saved network at boot" \
 		"Wi-Fi country$TAB$(val wifi-country)${TAB}sets the legal channels and power" \
+		"USB$TAB$(val usb)${TAB}port, hub, USB Ethernet; off saves ~90 mA" \
 		"Time zone$TAB$(val timezone | sed 's|.*/||' | cut -c1-14)" \
 		"Launcher at start$TAB$lt" \
 		"Boot log$TAB$(val bootlog)${TAB}nz-logs/ on the boot partition" \
@@ -90,11 +101,13 @@ while :; do
 		"Erase all data$TAB$TAB${TAB}back to a fresh install" | pick -s $pos "Options" "Enter:change  F/X:move  Esc:back") || exit 0
 	pos=$n
 	case $n in
-	1) brightness ;; 2) screen_off ;; 3) volume ;; 4) $A wifi ;; 5) country ;; 6) timezone ;; 7) launcher ;;
-	8) [ "$(val bootlog)" = on ] && $A set bootlog off || $A set bootlog on ;;
-	9) clear; $A set-password; pause ;;
-	10) nz-services ;;
-	11) about ;;
-	12) clear; $A erase-data; pause ;;
+	1) brightness ;; 2) screen_off ;; 3) volume ;; 4) $A wifi ;; 5) wifi_now ;;
+	6) [ "$(val wifi-boot)" = on ] && $A set wifi-boot off || $A set wifi-boot on ;;
+	7) country ;; 8) usb ;; 9) timezone ;; 10) launcher ;;
+	11) [ "$(val bootlog)" = on ] && $A set bootlog off || $A set bootlog on ;;
+	12) clear; $A set-password; pause ;;
+	13) nz-services ;;
+	14) about ;;
+	15) clear; $A erase-data; pause ;;
 	esac
 done

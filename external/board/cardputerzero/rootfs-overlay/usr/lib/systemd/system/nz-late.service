@@ -7,6 +7,7 @@ Wants=systemd-udev-settle.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStart=/etc/init.d/S11nz-devlinks start
+ExecStart=/etc/init.d/S13nz-usb start
 ExecStart=/etc/init.d/S45nz-net start
 ExecStart=/etc/init.d/S99nz-bootlog start
 # the scripts leave background helpers running on purpose

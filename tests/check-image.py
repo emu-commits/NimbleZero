@@ -247,6 +247,14 @@ _ko = [os.path.join(d, f) for d, _, fs in os.walk(R("lib/modules")) for f in fs 
 _parm = run(["modinfo", _ko[0]]).stdout if _ko else ""
 check("LCD driver module has the switches the settings file names",
       all(("parm:           %s:" % p) in _parm for p in ["nz_path", "nz_native", "nz_te", "nz_cached", "nz_async", "nz_fbdev_ms"]))
+# USB and Wi-Fi switches (Options > USB, Wi-Fi at start)
+_usbconf = R("etc/modprobe.d/nz-usb.conf")
+check("USB controller loaded by S13nz-usb from the Options setting, not by udev",
+      os.path.exists(_usbconf) and re.search(r"^blacklist dwc2$", open(_usbconf).read(), re.M) is not None
+      and os.access(R("etc/init.d/S13nz-usb"), os.X_OK) and "usb apply" in open(R("etc/init.d/S13nz-usb")).read())
+_adm = open(R("usr/sbin/nz-admin")).read()
+check("settings helper has the Wi-Fi and USB switches",
+      all(k in _adm for k in ["wifi-power)", "usb)", "wifi-boot)", "/etc/nz/defaults"]))
 _early = open(R("etc/init.d/S00nz-early")).read()
 check("vendor display behaviour selectable from the boot partition (nz-display-original) and in the safe configuration",
       "nz-display-original" in _early and "nz.safe=1" in _early and "nz.safe=1" in open(B("cmdline-safe.txt")).read())
