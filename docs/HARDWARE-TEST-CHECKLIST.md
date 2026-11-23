@@ -77,6 +77,10 @@ After each numbered block, the newest `nz-logs/boot-N.txt` from the boot partiti
       the PC can no longer connect. Switch it on again.
 - [ ] B7 In the SSH session: `sudo id` asks for your password and prints `uid=0`.
 - [ ] B8 Snake, Diagnostics, Terminal, Power off still work from the launcher.
+- [ ] B9 Options > Wi-Fi: off, then on again; Network info shows the address again within
+      a few seconds. Options > Wi-Fi at start: off, restart: the launcher comes up with
+      Wi-Fi off; Options > Wi-Fi on connects. Set it back to on. Options > USB: off, then on
+      (with a USB keyboard or Ethernet adapter plugged in: it stops, then works again).
 
 ## C. Store
 

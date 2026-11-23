@@ -16,6 +16,11 @@
 #   nz-admin set bootlog on|off          boot log on the boot partition (nz-logs/)
 #   nz-admin set wifi-country XX         regulatory domain (two letters), 00 = world default
 #   nz-admin set timezone Region/City    time zone (from /usr/share/zoneinfo)
+#   nz-admin set wifi-boot on|off        connect to the saved Wi-Fi network at boot
+#   nz-admin get wifi-boot|usb           one boot setting (the saved choice or the default)
+#   nz-admin wifi-power on|off|status    Wi-Fi radio now (the boot setting is not changed)
+#   nz-admin usb on|off|status           USB controller (port, hub, USB Ethernet) now and at boot
+#   nz-admin usb apply                   (boot) start the USB controller if USB is on
 #   nz-admin ssh on|off|status           SSH server now and at boot
 #   nz-admin ntp on|off|status|sync      clock from the network
 #   nz-admin set-password                set or change the password of "zero" (asks on the terminal)
@@ -30,6 +35,29 @@ mkdir -p $N
 die() { echo "nz-admin: $*" >&2; exit 2; }
 put() { printf '%s\n' "$2" > "$N/$1.new" && mv "$N/$1.new" "$N/$1"; }
 get() { v=$(cat "$N/$1" 2>/dev/null); echo "${v:-$2}"; }
+# defaults of the switches; a build may change them in /etc/nz/defaults ("usb=off").
+# Not under the emulator (same test as S98nz-qemu): its keyboard and test disks are USB.
+qemu() { grep -q 'nz.qemu=1' /proc/cmdline && grep -aq 'Raspberry Pi 3 Model B' /proc/device-tree/model 2>/dev/null; }
+dflt() { v=; qemu || v=$(sed -n "s/^$1=//p" /etc/nz/defaults 2>/dev/null | tail -n1); echo "${v:-$2}"; }
+wifi_boot() { get wifi-boot "$(dflt wifi-boot on)"; }
+usb_setting() { get usb "$(dflt usb on)"; }
+wifi_up() { ip link show wlan0 2>/dev/null | head -n1 | grep -q '[<,]UP[,>]'; }
+saved_network() { grep -q 'ssid=' /data/etc/wpa_supplicant.conf /boot/wifi.conf 2>/dev/null; }
+# the USB controller: the platform device of the SoC's DWC2 core (3f980000.usb on BCM2837)
+usb_dev() {
+	for d in /sys/bus/platform/devices/*.usb; do
+		grep -q 'bcm2835-usb' "$d/modalias" 2>/dev/null && { echo "${d##*/}"; return 0; }
+	done
+	return 1
+}
+usb_running() { d=$(usb_dev) && [ -e "/sys/bus/platform/drivers/dwc2/$d" ]; }
+usb_start() {     # the driver is a module (dwc2) or built in; load it, then bind if needed
+	modprobe dwc2 2>/dev/null
+	d=$(usb_dev) || return 1
+	[ -e "/sys/bus/platform/drivers/dwc2/$d" ] || echo "$d" > /sys/bus/platform/drivers/dwc2/bind 2>/dev/null
+	usb_running
+}
+usb_stop() { usb_running || return 0; echo "$d" > /sys/bus/platform/drivers/dwc2/unbind; }
 hash_of() { sed -n 's/^zero:\([^:]*\):.*/\1/p' /etc/shadow 2>/dev/null; }
 has_password() { case "$(hash_of)" in '$'*) return 0 ;; esac; return 1; }
 ssh_running() { /etc/init.d/S50dropbear status; }
@@ -81,6 +109,9 @@ status)
 	echo "launcher=$(get launcher $dl)"
 	echo "bootlog=$(get bootlog on)"
 	echo "wifi-country=$(get wifi-country 00)"
+	echo "wifi-boot=$(wifi_boot)"
+	wifi_up && echo "wifi-power=on" || echo "wifi-power=off"
+	echo "usb=$(usb_setting)"; usb_running && echo "usb-running=yes" || echo "usb-running=no"
 	tz=$(readlink /data/etc/localtime 2>/dev/null); echo "timezone=${tz#/usr/share/zoneinfo/}"
 	echo "ssh=$(get ssh on)"; ssh_running && echo "ssh-running=yes" || echo "ssh-running=no"
 	echo "ntp=$(get ntp on)"
@@ -117,6 +148,7 @@ set)
 		if [ -f $c ]; then
 			sed -i '/^country=/d' $c; [ "$3" = 00 ] || sed -i "1i country=$3" $c
 		fi ;;
+	wifi-boot) case "$3" in on|off) put wifi-boot "$3" ;; *) die "wifi-boot: on or off" ;; esac ;;
 	timezone)
 		case "$3" in *..*|/*|*[!A-Za-z0-9_+/-]*|'') die "timezone: a name such as Europe/Berlin or Etc/UTC" ;; esac
 		[ -f "/usr/share/zoneinfo/$3" ] || die "timezone: unknown zone $3"
@@ -141,6 +173,29 @@ ntp)
 		hwclock -w -u 2>/dev/null; : > /run/nz/ntp-done; date ;;
 	*) die "ntp: on, off, status or sync" ;;
 	esac ;;
+get)
+	case "$2" in
+	wifi-boot) wifi_boot ;;
+	usb) usb_setting ;;
+	*) die "get: wifi-boot or usb" ;;
+	esac ;;
+wifi-power)
+	case "$2" in
+	on)
+		saved_network || { echo "No Wi-Fi network is saved yet (Options > Wi-Fi network)." >&2; exit 4; }
+		/etc/init.d/S45nz-net wifi ;;
+	off) /etc/init.d/S45nz-net stop ;;
+	status) wifi_up && echo on || echo off ;;
+	*) die "wifi-power: on, off or status" ;;
+	esac ;;
+usb)
+	case "$2" in
+	on) put usb on; usb_start || die "the USB controller did not start"; /etc/init.d/S45nz-net eth ;;
+	off) put usb off; usb_stop ;;
+	apply) if [ "$(usb_setting)" = off ]; then usb_stop; else usb_start; fi ;;
+	status) usb_running && echo on || echo off ;;
+	*) die "usb: on, off, status or apply" ;;
+	esac ;;
 apply-volume) v=$(get volume ""); [ -n "$v" ] && set_volume "$v" ;;
 set-password) set_password "$2" ;;
 wifi) exec nz-wifi ;;
@@ -160,5 +215,5 @@ erase-data)
 	echo "Marked. Restarting..."; sleep 2; reboot ;;
 poweroff) exec nz-poweroff ;;
 reboot) sync; exec reboot ;;
-*) sed -n '4,22p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+*) sed -n '4,30p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
 esac
