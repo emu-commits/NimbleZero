@@ -75,6 +75,7 @@ runs a filesystem repair during boot. To recover the partition from a shell:
 | `config-safe.txt` + `cmdline-safe.txt` | conservative fallback: only the board overlay, HDMI forced on, verbose kernel log on LCD/HDMI/UART. **To use it, rename `config-safe.txt` to `config.txt`.** |
 | `wifi.conf.example` | rename to `wifi.conf` and fill in SSID/passphrase to join Wi-Fi at boot |
 | `nz-debug` | while this (empty) file exists, every boot writes a log to `nz-logs/`. Delete it to stop the writes. |
+| `nz-serial-init` | create this (empty) file to run every init script before the launcher starts (the v0.1.0 order). Normally the launcher starts right after the data partition is mounted and D-Bus, network, SSH, sound and services start behind it (`/etc/init.d/rcS`; their output is in `/run/nz/late.log`). |
 | `nz-nodiag` | create this (empty) file to skip the diagnostic UI and go straight to a login prompt |
 | `nz-logs/boot-N.txt` | written by the device: hardware report, display/keymap/storage/Wi-Fi state, init script timings, module list, processes, I2C scan, full kernel log (last 5 boots) |
 | `nz-logs/diag-report.txt` | written when you press `S` in the diagnostic UI |

@@ -1,16 +1,42 @@
 #!/bin/sh
 # Start all init scripts in /etc/init.d in order (Buildroot's rcS), additionally
-# recording how long each one took in /run/nz/rcS-times ("<seconds> <script>").
+# recording how long each one took in /run/nz/rcS-times ("<start> <end> <script>",
+# seconds since boot).
+#
+# Console first: the scripts S00-S19 (devices, LCD, keyboard, data partition) run before
+# the console - init starts the launcher as soon as this script returns.  The scripts
+# from S20 on (D-Bus, network, SSH, sound, services) then run in the background, in the
+# same order, after udev has finished the devices it left for later (see S10udevd).
+# Their output goes to /run/nz/late.log instead of the console.
+# With /boot/nz-serial-init every script runs before the console, as in v0.1.0.
 mkdir -p /run/nz
-for i in /etc/init.d/S??* ;do
-	[ ! -f "$i" ] && continue
+run() {
 	read -r t0 _ < /proc/uptime
-	case "$i" in
-	*.sh)
-		( trap - INT QUIT TSTP; set start; . $i ) ;;
-	*)
-		$i start ;;
+	case "$1" in
+	*.sh) ( trap - INT QUIT TSTP; set start; . "$1" ) ;;
+	*) "$1" start ;;
 	esac
 	read -r t1 _ < /proc/uptime
-	echo "$t0 $t1 ${i##*/}" >> /run/nz/rcS-times
+	echo "$t0 $t1 ${1##*/}" >> /run/nz/rcS-times
+}
+late() {
+	if [ -e /run/nz/udev-settle-deferred ]; then
+		read -r t0 _ < /proc/uptime
+		udevadm settle --timeout=30 || echo "udevadm settle failed"
+		read -r t1 _ < /proc/uptime
+		echo "$t0 $t1 udev-settle" >> /run/nz/rcS-times
+	fi
+	for i in "$@"; do [ -f "$i" ] && run "$i"; done
+	cut -d' ' -f1 /proc/uptime > /run/nz/t_late_done
+}
+early=; rest=
+for i in /etc/init.d/S??*; do
+	case "${i##*/}" in S0*|S1*) early="$early $i" ;; *) rest="$rest $i" ;; esac
 done
+for i in $early; do [ -f "$i" ] && run "$i"; done
+cut -d' ' -f1 /proc/uptime > /run/nz/t_console
+if [ -e /boot/nz-serial-init ]; then
+	late $rest
+else
+	( late $rest ) < /dev/null > /run/nz/late.log 2>&1 &
+fi
