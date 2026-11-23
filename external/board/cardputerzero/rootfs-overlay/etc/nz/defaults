@@ -1,0 +1,5 @@
+# emuZero defaults for the Options switches (nz-admin reads this file; a choice made in
+# Options, stored in /data/etc/nz, always wins).  Both off for battery life: Wi-Fi at start
+# off (switch it on in Options > Wi-Fi when needed), USB off (about 93 mA less).
+wifi-boot=off
+usb=off
