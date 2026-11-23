@@ -5,3 +5,5 @@ ACTION!="remove", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_PATH}=="platform-
 ACTION=="add", SUBSYSTEM=="leds", KERNEL=="grove_fun|ext_usb_gpio_fun|ext_5v_out|grove_5v_out", RUN+="/bin/chgrp gpio $sys$devpath/brightness", RUN+="/bin/chmod g+w $sys$devpath/brightness"
 ACTION=="add", SUBSYSTEM=="backlight", RUN+="/bin/chgrp video $sys$devpath/brightness $sys$devpath/bl_power", RUN+="/bin/chmod g+w $sys$devpath/brightness $sys$devpath/bl_power"
 ACTION=="add", SUBSYSTEM=="graphics", KERNEL=="fb0", TEST=="device/reset", RUN+="/bin/chgrp gpio $sys$devpath/device/reset", RUN+="/bin/chmod g+w $sys$devpath/device/reset"
+# camera buffers: libcamera apps allocate from the CMA heap (Raspberry Pi OS rule)
+SUBSYSTEM=="dma_heap", GROUP="video", MODE="0660"
