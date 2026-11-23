@@ -16,12 +16,18 @@ while [ $# -gt 0 ]; do
 	esac; shift
 done
 have() {   # have NAME [OP VERSION]
-	v=$(dpkg-query -W -f='${db:Status-Status} ${Version}' "$1" 2>/dev/null) || {
-		# virtual packages: any installed package that Provides: NAME
-		dpkg-query -W -f='${db:Status-Status} ${Provides}\n' 2>/dev/null | grep -qE "^installed .*(^|[ ,])$1([ ,(]|$)" && return 0
-		return 1; }
-	case "$v" in installed\ *) ;; *) return 1 ;; esac
-	[ -z "$2" ] || dpkg --compare-versions "${v#installed }" "$2" "$3"
+	v=$(dpkg-query -W -f='${db:Status-Status} ${Version}' "$1" 2>/dev/null)
+	case "$v" in installed\ *)
+		[ -z "$2" ] || dpkg --compare-versions "${v#installed }" "$2" "$3"; return ;;
+	esac
+	# virtual packages: any installed package that Provides: NAME.  Checked whenever NAME
+	# is not installed itself - dpkg-query also answers "not-installed" with exit status 0
+	# for a name it has only seen in another package's Depends.  Names are compared whole
+	# (no regex: package names contain + and .).
+	dpkg-query -W -f='${db:Status-Status} ${Provides}\n' 2>/dev/null | awk -v n="$1" '
+		$1 == "installed" { sub(/^installed /, ""); k = split($0, a, ",")
+			for (i = 1; i <= k; i++) { p = a[i]; sub(/^ +/, "", p); sub(/[ (].*/, "", p); if (p == n) f = 1 } }
+		END { exit !f }'
 }
 unmet() {  # print unmet Depends/Pre-Depends of a .deb
 	dpkg-deb -f "$1" Pre-Depends Depends | sed 's/^[A-Za-z-]*: //' | tr ',' '\n' | while read -r alt; do

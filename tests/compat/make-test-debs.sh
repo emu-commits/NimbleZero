@@ -33,6 +33,11 @@ done
 d=$(mk nz-test-needs-debian 1.0 "Depends: libc6, libnonexistent42 (>= 1.0)
 "); mkdir -p "$d/opt/nz-test"; echo x > "$d/opt/nz-test/needs"
 dpkg-deb -Zzstd --root-owner-group -b "$d" "$O/nz-test-needs-debian_1.0_arm64.deb" >/dev/null
+# 3b. depends only on names the firmware Provides (libpng16-16 comes from libpng16-16t64,
+#     ssh-server from dropbear): the apt-get shim must accept it
+d=$(mk nz-test-needs-virtual 1.0 "Depends: libpng16-16, ssh-server, libstdc++6
+"); mkdir -p "$d/opt/nz-test"; echo x > "$d/opt/nz-test/virtual"
+dpkg-deb -Zzstd --root-owner-group -b "$d" "$O/nz-test-needs-virtual_1.0_arm64.deb" >/dev/null
 # 4. big package to make an interrupted unpack reproducible (40 MiB of incompressible data)
 d=$(mk nz-test-big 1.0 ""); mkdir -p "$d/opt/nz-test-big"
 i=0; while [ $i -lt 40 ]; do head -c 1048576 /dev/urandom > "$d/opt/nz-test-big/blob$i"; i=$((i+1)); done
