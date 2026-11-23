@@ -1,0 +1,21 @@
+config BR2_PACKAGE_NZ_LIBCAMERA
+	bool "nz-libcamera (Raspberry Pi libcamera 0.8, for M5Stack camera apps)"
+	depends on !BR2_PACKAGE_LIBCAMERA
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_9
+	select BR2_PACKAGE_GNUTLS
+	select BR2_PACKAGE_LIBYAML
+	help
+	  Raspberry Pi's libcamera tree at the release that M5Stack's
+	  camera apps are built against (Debian names libcamera0.8 and
+	  libcamera-ipa).  Buildroot's own libcamera package is an older
+	  release with another library version, which those apps cannot
+	  load.  Only the rpi/vc4 pipeline and its IPA (ISP control and
+	  sensor tuning files, IMX219 included) are built.
+
+	  https://github.com/raspberrypi/libcamera
+
+comment "nz-libcamera needs a toolchain w/ C++, threads, gcc >= 9"
+	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS || \
+		!BR2_TOOLCHAIN_GCC_AT_LEAST_9

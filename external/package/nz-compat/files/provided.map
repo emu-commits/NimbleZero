@@ -62,3 +62,8 @@ libsdl2-2.0-0|/usr/lib/libSDL2-2.0.so.0|sdl2
 libsdl2-ttf-2.0-0|/usr/lib/libSDL2_ttf-2.0.so.0|sdl2_ttf
 libsdl2-image-2.0-0|/usr/lib/libSDL2_image-2.0.so.0|sdl2_image
 libsdl2-mixer-2.0-0|/usr/lib/libSDL2_mixer-2.0.so.0|sdl2_mixer
+# camera stack (M5Stack Camera, FxCam and other libcamera apps)
+libcamera0.8|/usr/lib/libcamera.so.0.8|nz-libcamera
+libcamera-ipa|/usr/lib/libcamera/ipa/ipa_rpi_vc4.so|nz-libcamera
+libfmt10|/usr/lib/libfmt.so.10|nz-fmt10
+libcjson1|/usr/lib/libcjson.so.1|cjson

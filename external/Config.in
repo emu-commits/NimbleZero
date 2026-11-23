@@ -6,4 +6,6 @@ menu "Cardputer Zero"
 	source "$BR2_EXTERNAL_NZ_PATH/package/nz-compat/Config.in"
 	source "$BR2_EXTERNAL_NZ_PATH/package/nz-launcher/Config.in"
 	source "$BR2_EXTERNAL_NZ_PATH/package/nz-apps/Config.in"
+	source "$BR2_EXTERNAL_NZ_PATH/package/nz-libcamera/Config.in"
+	source "$BR2_EXTERNAL_NZ_PATH/package/nz-fmt10/Config.in"
 endmenu

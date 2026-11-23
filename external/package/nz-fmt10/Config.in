@@ -1,0 +1,10 @@
+config BR2_PACKAGE_NZ_FMT10
+	bool "nz-fmt10 (libfmt.so.10 runtime for M5Stack apps)"
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  The shared library of {fmt} 10 (Debian name libfmt10), which
+	  M5Stack's camera app and several apps of the M5 index link.
+	  Only libfmt.so.10 is installed: no headers, so it does not
+	  clash with Buildroot's newer fmt package.
+
+	  https://fmt.dev
