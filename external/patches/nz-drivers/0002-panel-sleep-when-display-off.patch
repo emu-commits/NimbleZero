@@ -1,0 +1,24 @@
+From: NimbleZero <noreply@invalid>
+Subject: [PATCH] panel-mipi-dbi-m: put the panel to sleep when the display is switched off
+
+When the display pipe is disabled (FBIOBLANK powerdown, DPMS off) the controller kept
+scanning with only the backlight off.  Send DISPLAY_OFF and ENTER_SLEEP_MODE first; the
+enable path already resets the panel and re-runs the init commands, which leave sleep.
+
+Measured on a Cardputer Zero 2026-11-23 (battery, backlight off, Wi-Fi on): 209 -> 202 mA,
+TE pulses 62/s -> 0.
+
+--- a/modules/st7789v-1.0/panel-mipi-dbi-m.c	2026-11-23 13:48:42.284629875 -0500
++++ b/modules/st7789v-1.0/panel-mipi-dbi-m.c	2026-11-23 13:49:47.870289485 -0500
+@@ -877,6 +877,11 @@
+ 
+     flush_work(&panel->nz_work);
+     mutex_lock(&panel->display_lock);
++    /* Put the controller to sleep: it stops scanning and its TE output goes quiet
++     * (hardware 2026-11-23: -6 to -7 mA with the backlight already off, TE 62/s -> 0).
++     * The enable path resets and re-runs the init commands, which leave sleep mode. */
++    mipi_dbi_command(&dbidev->dbi, MIPI_DCS_SET_DISPLAY_OFF);
++    mipi_dbi_command(&dbidev->dbi, MIPI_DCS_ENTER_SLEEP_MODE);
+     mipi_dbi_pipe_disable(pipe);
+     mutex_unlock(&panel->display_lock);
+ }
