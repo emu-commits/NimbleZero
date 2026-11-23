@@ -18,8 +18,8 @@ NZ_FMT10_CONF_OPTS = \
 
 define NZ_FMT10_EXTRACT_CMDS
 	$(UNZIP) -q -d $(@D) $(NZ_FMT10_DL_DIR)/$(NZ_FMT10_SOURCE)
-	mv $(@D)/fmt-$(NZ_FMT10_VERSION)/* $(@D)/
-	rmdir $(@D)/fmt-$(NZ_FMT10_VERSION)
+	cp -a $(@D)/fmt-$(NZ_FMT10_VERSION)/. $(@D)/
+	rm -rf $(@D)/fmt-$(NZ_FMT10_VERSION)
 endef
 
 define NZ_FMT10_INSTALL_TARGET_CMDS
