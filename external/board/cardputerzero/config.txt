@@ -12,6 +12,10 @@ gpu_mem=32
 # No HDMI on this board: without this the firmware framebuffer becomes fb0, takes the
 # console, and the SPI panel (then fb1) is never switched on.
 max_framebuffers=0
+# Composite (TV) output: this board has no connector for it, but the firmware switches it
+# on when no HDMI screen is found at boot (video encoder clock 108 MHz).  Off: about 16 mA
+# less at idle (hardware 2026-11-23: 199-200 -> 183 mA on battery, screen off).
+enable_tvout=0
 
 dtparam=i2c_arm=on
 dtparam=i2s=on

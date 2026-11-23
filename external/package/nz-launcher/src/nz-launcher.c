@@ -215,6 +215,19 @@ static void backlight_power(int on)
 	if (d) closedir(d);
 }
 
+/* Screen off = backlight off AND the display switched off, so the panel driver can put
+ * the controller to sleep (hardware 2026-11-23: about 7 mA less than backlight alone). */
+static void screen_power(int on)
+{
+#ifndef NZUI_SDL
+	if (on && ioctl(nzui__fd, FBIOBLANK, FB_BLANK_UNBLANK)) {}
+#endif
+	backlight_power(on);
+#ifndef NZUI_SDL
+	if (!on && ioctl(nzui__fd, FBIOBLANK, FB_BLANK_POWERDOWN)) {}
+#endif
+}
+
 int main(int argc, char **argv)
 {
 	struct nzui_event ev; int r, screen_on = 1, idle_s = idle_setting();
@@ -245,7 +258,7 @@ int main(int argc, char **argv)
 		now = time(NULL);
 		if (r == 1 && ev.value) {
 			last_key = now;
-			if (!screen_on) { screen_on = 1; backlight_power(1); draw(); continue; }   /* first key only wakes */
+			if (!screen_on) { screen_on = 1; screen_power(1); draw(); continue; }   /* first key only wakes */
 			switch (ev.key) {
 			case KEY_UP: case KEY_F: case KEY_K: case KEY_W: if (sel > 0) sel--; break;
 			case KEY_DOWN: case KEY_X: case KEY_J: case KEY_S: if (sel < napps - 1) sel++; break;
@@ -263,7 +276,7 @@ int main(int argc, char **argv)
 			case KEY_Q: if (ev.value == 1) { nzui_quit(); return 0; } break;
 			}
 		}
-		if (screen_on && idle_s > 0 && now - last_key >= idle_s) { screen_on = 0; backlight_power(0); continue; }
+		if (screen_on && idle_s > 0 && now - last_key >= idle_s) { screen_on = 0; screen_power(0); continue; }
 		if (screen_on) draw();
 	}
 	nzui_quit();

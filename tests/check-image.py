@@ -196,6 +196,7 @@ if os.path.exists(R("/etc/inittab")):
     check("licence texts shipped in the image", os.path.isfile(R("/usr/share/licenses/NimbleZero/COPYING")) and os.path.isfile(R("/usr/share/licenses/manifest.csv")))
     check("no boot-time seed file write (S01seedrng removed)", not os.path.exists(R("/etc/init.d/S01seedrng")))
 check("config.txt disables the firmware framebuffer", parse_cfg(B("config.txt"))[0].get("max_framebuffers") == "0")
+check("config.txt switches the composite (TV) output off", parse_cfg(B("config.txt"))[0].get("enable_tvout") == "0")
 mods = os.listdir(R("/lib/modules")) if os.path.isdir(R("/lib/modules")) else []
 check("modules directory matches kernel Image version", kver in mods, f"Image={kver} modules={mods}")
 have = set(); compressed = False
