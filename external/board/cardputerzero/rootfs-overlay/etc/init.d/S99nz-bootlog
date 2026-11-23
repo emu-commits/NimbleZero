@@ -6,6 +6,9 @@
 case "$1" in
 start)
 	cut -d' ' -f1 /proc/uptime > /run/nz/t_init_done
+	# boot report: stage times (the launcher's first frame is normally drawn by now)
+	( n=0; while [ ! -e /run/nz/t_launcher_frame ] && [ $n -lt 30 ]; do sleep 1; n=$((n+1)); done
+	  nz-boottime -w > /dev/null ) &
 	[ -e /boot/nz-debug ] || exit 0
 	# Options menu switch (default: on for this release)
 	[ "$(cat /data/etc/nz/bootlog 2>/dev/null)" = off ] && exit 0
@@ -17,6 +20,7 @@ start)
 		{
 			echo "=== nz boot log #$n ==="; cat /etc/nz-release; cat /proc/cmdline
 			echo "init_start=$(cat /run/nz/t_init_start)s init_done=$(cat /run/nz/t_init_done)s"
+			echo "boot times (s): $(cat /run/nz/boot-times 2>/dev/null || nz-boottime)"
 			echo "=== nz-diag --report ==="; nz-diag --report 2>&1
 			echo "=== display ==="; cat /run/nz/fb-activate 2>&1; ls -l /dev/fb_lcd /dev/dri/ 2>&1
 			for f in /sys/class/graphics/fb*/name /sys/class/drm/card*-*/status /sys/class/drm/card*-*/enabled /sys/class/drm/card*-*/dpms \

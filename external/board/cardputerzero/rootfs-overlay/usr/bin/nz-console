@@ -15,6 +15,8 @@ tty1)
 	fi
 	chown zero /dev/tty1 2>/dev/null
 	mkdir -p /run/user/1000 && chown zero /run/user/1000 && chmod 700 /run/user/1000
+	# boot report: the launcher writes the uptime of its first frame here (nz-boottime)
+	[ -e /run/nz/t_launcher_frame ] || { : > /run/nz/t_launcher_frame; chown zero /run/nz/t_launcher_frame; }
 	# M5Stack APPLaunch owns the LCD when it is the chosen launcher AND really installed
 	# (a leftover "enabled" link on the data partition must never leave the screen blank).
 	if [ "$(cat $N/launcher 2>/dev/null)" != native ] && [ -x /usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch ] &&

@@ -30,7 +30,9 @@ js version "$(sed -n 's/^VERSION=//p' /etc/nz-release 2>/dev/null)"
 js kernel "$(uname -r)"
 js machine "$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)"
 js init "$(readlink -f /proc/1/exe 2>/dev/null)"
-# --- boot timing (seconds since kernel start; firmware/bootloader time is not visible from here)
+# --- boot timing (seconds since kernel start; the firmware stage from the SoC timer, see nz-boottime)
+j boot_firmware_s "$(nz-boottime | sed -n 's/^firmware \([0-9.]*\) .*/\1/p' | grep . || echo null)"
+j boot_launcher_frame_s "$(cat /run/nz/t_launcher_frame 2>/dev/null || echo null)"
 j boot_kernel_to_init_s "$(dmesg | sed -n 's/^\[ *\([0-9.]*\)\] Run \/sbin\/init.*/\1/p;s/^\[ *\([0-9.]*\)\] Run \/init.*/\1/p' | head -n1 | grep . || echo null)"
 j boot_init_start_s "$(cat /run/nz/t_init_start 2>/dev/null || echo null)"
 j boot_init_done_s "$(cat /run/nz/t_init_done 2>/dev/null || echo null)"

@@ -1,0 +1,30 @@
+#!/bin/sh
+# nz-boottime - how long the last start took, stage by stage, in seconds.
+#   firmware  power-on to kernel start (boot ROM + Raspberry Pi firmware).  The SoC's
+#             1 MHz system timer runs from power-on, the kernel's uptime from kernel
+#             start; the difference is the firmware stage.  Needs root (/dev/mem).
+#   kernel    kernel start to the first init script
+#   devices   first init script to the console (S00-S19: udev, LCD, keyboard, /data)
+#   launcher  console to the launcher's first frame
+#   total     power-on to the launcher's first frame (a stopwatch adds the switch)
+# Prints one line; with -w also writes it to /run/nz/boot-times.
+r() { cat "/run/nz/$1" 2>/dev/null; }
+fw=
+case "$(tr -d '\0' < /proc/device-tree/compatible 2>/dev/null)" in
+*bcm2837*|*bcm2710*|*bcm2711*)
+	b=0x3F000000; case "$(tr -d '\0' < /proc/device-tree/compatible)" in *bcm2711*) b=0xFE000000 ;; esac
+	if [ "$(id -u)" = 0 ] && command -v devmem >/dev/null; then
+		hi=$(devmem $((b + 0x3008)) 32); lo=$(devmem $((b + 0x3004)) 32); up=$(cut -d' ' -f1 /proc/uptime)
+		fw=$(awk -v h=$((hi)) -v l=$((lo)) -v u="$up" 'BEGIN { printf "%.2f", (h * 4294967296 + l) / 1e6 - u }')
+	fi ;;
+esac
+line=$(awk -v fw="$fw" -v i="$(r t_init_start)" -v c="$(r t_console)" -v l="$(r t_launcher_frame)" 'BEGIN {
+	f = (fw == "") ? "?" : fw
+	printf "firmware %s  kernel %s  devices %s  launcher %s  total %s",
+		f, i == "" ? "?" : sprintf("%.2f", i),
+		(i == "" || c == "") ? "?" : sprintf("%.2f", c - i),
+		(c == "" || l == "") ? "?" : sprintf("%.2f", l - c),
+		(fw == "" || l == "") ? "?" : sprintf("%.2f", fw + l) }')
+echo "$line"
+[ "$1" = -w ] && echo "$line" > /run/nz/boot-times
+exit 0

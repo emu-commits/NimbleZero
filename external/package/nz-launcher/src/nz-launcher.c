@@ -227,6 +227,16 @@ int main(int argc, char **argv)
 	}
 	if (nzui_init("nz-launcher")) { fprintf(stderr, "nz-launcher: no display\n"); return 1; }
 	scan(); draw();
+	{   /* boot report (nz-boottime): uptime at the first frame.  nz-console creates the
+	     * file empty for us at boot; a later start of the launcher finds it filled. */
+		int fd = open("/run/nz/t_launcher_frame", O_WRONLY | O_APPEND | O_NOFOLLOW | O_CLOEXEC);
+		struct stat st; FILE *u; char t[32] = "";
+		if (fd >= 0 && !fstat(fd, &st) && st.st_size == 0 && (u = fopen("/proc/uptime", "r"))) {
+			if (fscanf(u, "%31s", t) == 1) { strcat(t, "\n"); if (write(fd, t, strlen(t)) < 0) {} }
+			fclose(u);
+		}
+		if (fd >= 0) close(fd);
+	}
 	for (;;) {
 		time_t now = time(NULL);
 		int to = !screen_on ? -1 : (int)(60 - now % 60) * 1000;
