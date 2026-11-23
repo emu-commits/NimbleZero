@@ -94,6 +94,33 @@ CONFIG_MEDIA_SUBDRV_AUTOSELECT=y
 # CONFIG_KGDB is not set
 # CONFIG_FTRACE is not set
 # CONFIG_SCSI_ISCSI_ATTRS is not set
+# USB controller as a module: built in, its probe holds up the whole kernel for
+# 0.73 s (initcall_debug on hardware); as a module udev loads it in the background.
+# dwc_otg stays built in: config-safe.txt has no dwc2 overlay and uses it.
+CONFIG_USB_DWC2=m
+# Raspberry Pi 4/5 hardware: the CM0 (BCM2710A1) has no PCIe, xHCI, RP1, GENET or MACB
+# CONFIG_ARCH_BRCMSTB is not set
+# CONFIG_PCI is not set
+# CONFIG_USB_XHCI_HCD is not set
+# CONFIG_USB_DWC3 is not set
+# CONFIG_MFD_RP1 is not set
+# CONFIG_BCMGENET is not set
+# CONFIG_MACB is not set
+# CONFIG_PINCTRL_BCM2712 is not set
+# no UEFI firmware, no initramfs (root= is the SD card). NUMA stays on: without it
+# the VideoCore refuses the camera ISP's MMAL service ("Failed to open VCHI service
+# connection", no /dev/video13), tested on hardware.
+# CONFIG_EFI is not set
+# CONFIG_BLK_DEV_INITRD is not set
+# unused here (CGROUP_BPF is already off; nothing loads AppArmor profiles or reads audit)
+# CONFIG_BPF_SYSCALL is not set
+# CONFIG_MPTCP is not set
+# CONFIG_SECURITY_APPARMOR is not set
+# CONFIG_AUDIT is not set
+# CONFIG_KPROBES is not set
+# CONFIG_KALLSYMS_ALL is not set
+# neither partition is F2FS: keep it for removable media, out of the kernel image
+CONFIG_F2FS_FS=m
 """.strip().split('\n')
 print('\n'.join(out))
 print(f"kept {n_keep} modules, disabled {n_off}", file=sys.stderr)
