@@ -17,13 +17,15 @@ tty1)
 	mkdir -p /run/user/1000 && chown zero /run/user/1000 && chmod 700 /run/user/1000
 	# boot report: the launcher writes the uptime of its first frame here (nz-boottime)
 	[ -e /run/nz/t_launcher_frame ] || { : > /run/nz/t_launcher_frame; chown zero /run/nz/t_launcher_frame; }
+	echo $$ > /run/nz/console-tty1.pid       # nz-admin switch-launcher restarts us
 	# M5Stack APPLaunch owns the LCD when it is the chosen launcher AND really installed
 	# (a leftover "enabled" link on the data partition must never leave the screen blank).
-	if [ "$(cat $N/launcher 2>/dev/null)" != native ] && [ -x /usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch ] &&
-	   ls /home/*/.config/systemd/user/default.target.wants/APPLaunch.service >/dev/null 2>&1; then
+	# nz-admin also applies the ways back that need no SSH (marker file, key held at start).
+	if [ "$(nz-admin boot-launcher 2>/dev/null)" = m5 ]; then
 		echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null     # keep fbcon off the panel
 		exec sleep 2147483647
 	fi
+	echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null     # text apps need fbcon (after APPLaunch)
 	if [ -x /usr/bin/nz-launcher ] && [ ! -e /boot/nz-nolauncher ] && [ ! -e /run/nz/nolauncher ]; then
 		su -s /bin/sh zero -c 'export HOME=/home/zero USER=zero LOGNAME=zero XDG_RUNTIME_DIR=/run/user/1000; . /etc/profile 2>/dev/null; cd; exec nz-launcher' </dev/tty1 >/dev/tty1 2>&1
 	fi

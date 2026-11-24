@@ -51,7 +51,7 @@ logind + PAM user sessions, polkit, D-Bus, NetworkManager, BlueZ, PipeWire.
 | Service handling, config A | BusyBox init + `nz-unit` (runs simple unit files) + `systemctl`/`loginctl`/`runuser` shims; honours the upstream "offline enable" symlink | none |
 | Service handling, config B | real systemd 259 + logind + PAM + D-Bus (`nz_compat_systemd_defconfig`) | none |
 | Fetching upstream packages | `nz-m5 install-launcher`, `nz-m5 install <Repo>` download release assets from GitHub on the device | – |
-| Coexistence | native launcher reads `/usr/share/APPLaunch/applications` too; when APPLaunch is enabled it owns the LCD instead | – |
+| Coexistence | native launcher reads `/usr/share/APPLaunch/applications` too; when APPLaunch is enabled and chosen under Options > Launcher at start it owns the LCD instead. Ways back without SSH: "NimbleZero launcher" in its app list, Del held while switching on, or an empty file `nz-native-launcher` on the boot partition | – |
 
 Not implemented: APT/Debian repositories, polkit, NetworkManager, BlueZ userspace,
 PipeWire/PulseAudio, ffmpeg, the M5Stack splash/`fb_load`, ADB.

@@ -10,8 +10,11 @@ nz-launcher: nz-launcher.c $(NZUI)/nzui.h
 nz-pick: nz-pick.c $(NZUI)/nzui.h
 	$(CC) $(CFLAGS) $(NZ_CFLAGS) -o $@ nz-pick.c $(LDFLAGS)
 
+nz-keyheld: nz-keyheld.c
+	$(CC) $(CFLAGS) $(NZ_CFLAGS) -o $@ nz-keyheld.c $(LDFLAGS)
+
 sim: nz-launcher.c $(NZUI)/nzui.h
 	$(CC) $(CFLAGS) $(NZ_CFLAGS) -DNZUI_SDL $$(sdl2-config --cflags) -o nz-launcher-sim nz-launcher.c $$(sdl2-config --libs)
 
 clean:
-	rm -f nz-launcher nz-pick nz-launcher-sim
+	rm -f nz-launcher nz-pick nz-keyheld nz-launcher-sim

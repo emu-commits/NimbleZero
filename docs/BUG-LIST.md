@@ -18,6 +18,12 @@ Commands were renamed from `cz-*` to `nz-*` in rc8; older reports used the `cz-`
 | B14 | medium | Recorder (official M5 app): recording appears to work and a file is saved, but it cannot be played back. | hw:unit1 | open; cause unknown, details requested (what happens on playback, size of the saved file, `/tmp/nz-app.log`). Not reproducible in the emulator (no sound card). |
 | B15 | low | Cardputer TV: sound lags the picture more than on the stock firmware (where it also lags, at a much lower frame rate). | hw:unit1 | open; owner attributes it to the app for now. Not investigated. |
 
+## Fixed after v0.1.0
+
+| # | Bug | Fix | Verified |
+|---|---|---|---|
+| B17 | After choosing the M5 launcher there was no way back without SSH, and even `nz-admin set launcher native` (the escape Options pointed to) did not stop it: the applaunch package links `APPLaunch.service` into `~/.config/systemd/user/default.target.wants`, and `S60nz-units` started every linked user unit at boot without looking at the launcher setting. Both launchers then drew on the screen. | `S60nz-units` starts `APPLaunch.service` only when the M5 launcher is the chosen one (`nz-admin boot-launcher`, the same test `nz-console` uses). Three ways back that need no SSH: an entry "NimbleZero launcher" in the M5 launcher's app list; Del (or Esc) held while switching on; an empty file `nz-native-launcher` on the boot partition, written from a PC. Options can also change over at once (`nz-admin switch-launcher native\|m5`). | hw (CardputerZero, APPLaunch 0.6.111): launcher set to native with APPLaunch installed and linked, reboot: only the NimbleZero launcher runs. The app-list entry, the boot-partition file and Options > Switch now each changed over (screenshots); M5 chosen + reboot still starts the M5 launcher. Held key: tested with an emulated keyboard, not yet with the real keyboard. |
+
 ## Fixed in rc11, waiting for a hardware test
 
 | # | Bug | Fix | Verified |

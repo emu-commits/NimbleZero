@@ -24,6 +24,9 @@ define NZ_COMPAT_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0644 $(@D)/provided.map $(TARGET_DIR)/usr/share/nz/provided.map
 	$(INSTALL) -D -m 0755 $(@D)/xdg-user-dirs-update $(TARGET_DIR)/usr/bin/xdg-user-dirs-update
 	$(INSTALL) -D -m 0755 $(@D)/nz-m5 $(TARGET_DIR)/usr/bin/nz-m5
+	# way back from the M5 launcher: an entry in its app list (its Icon is one of APPLaunch's own)
+	$(INSTALL) -D -m 0755 $(@D)/nz-native-launcher $(TARGET_DIR)/usr/bin/nz-native-launcher
+	$(INSTALL) -D -m 0644 $(@D)/nz-native-launcher.desktop $(TARGET_DIR)/usr/share/APPLaunch/applications/nz-native-launcher.desktop
 	$(INSTALL) -D -m 0644 $(@D)/70-nz-compat.rules $(TARGET_DIR)/etc/udev/rules.d/70-nz-compat.rules
 	$(INSTALL) -D -m 0755 $(@D)/runuser $(TARGET_DIR)/usr/sbin/runuser
 	$(INSTALL) -D -m 0755 $(@D)/apt-get $(TARGET_DIR)/usr/bin/apt-get

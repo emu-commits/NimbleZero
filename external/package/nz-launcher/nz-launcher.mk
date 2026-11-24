@@ -12,7 +12,7 @@ NZ_LAUNCHER_INSTALL_STAGING = YES
 NZ_LAUNCHER_NZUI_DIR = $(BR2_EXTERNAL_NZ_PATH)/../sdk/nzui
 
 define NZ_LAUNCHER_BUILD_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) $(TARGET_CONFIGURE_OPTS) NZUI=$(NZ_LAUNCHER_NZUI_DIR) nz-launcher nz-pick
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) $(TARGET_CONFIGURE_OPTS) NZUI=$(NZ_LAUNCHER_NZUI_DIR) nz-launcher nz-pick nz-keyheld
 endef
 
 define NZ_LAUNCHER_INSTALL_STAGING_CMDS
@@ -23,6 +23,7 @@ endef
 define NZ_LAUNCHER_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/nz-launcher $(TARGET_DIR)/usr/bin/nz-launcher
 	$(INSTALL) -D -m 0755 $(@D)/nz-pick $(TARGET_DIR)/usr/bin/nz-pick
+	$(INSTALL) -D -m 0755 $(@D)/nz-keyheld $(TARGET_DIR)/usr/bin/nz-keyheld
 	mkdir -p $(TARGET_DIR)/usr/share/applications
 endef
 

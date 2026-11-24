@@ -56,7 +56,12 @@ launcher() {
 	n=$(printf '%s\n' "NimbleZero launcher${TAB}${TAB}this launcher" "M5 launcher${TAB}${TAB}M5Stack APPLaunch (install it from the Store)" | pick "Launcher at start") || return
 	if [ $n = 2 ]; then
 		[ "$(val m5-launcher)" = installed ] || { clear; echo "The M5 launcher is not installed."; echo "Install it first: Store > M5 Launcher."; pause; return; }
-		$A set launcher m5; clear; echo "The M5 launcher starts at the next boot."; echo "To come back: SSH in and run"; echo "  sudo nz-admin set launcher native"; pause
+		m=$(printf '%s\n' "-Ways back to this launcher:" "- M5 app list: NimbleZero launcher" "- hold Del while switching on" "- or from a PC: an empty file named" "-   nz-native-launcher on NZBOOT" \
+			"Switch at the next start" "Switch now" "Cancel" | pick "M5 launcher") || return
+		case $m in
+		6) $A set launcher m5; clear; echo "The M5 launcher starts at the next start."; pause ;;
+		7) $A switch-launcher m5 || pause ;;
+		esac
 	else $A set launcher native; fi
 }
 about() {

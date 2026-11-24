@@ -8,7 +8,7 @@
  *   /usr/local/share/applications, $HOME/.local/share/applications
  * so "installing an app" is just putting a .desktop file there - by hand, from a
  * tarball or with dpkg.  Keys used from each entry: Name, Comment, Exec,
- * Terminal, NoDisplay, Path.
+ * Terminal, NoDisplay, Path, OnlyShowIn (an entry limited to other launchers is hidden).
  *
  * Lifecycle: one foreground app at a time.  The launcher gives up the screen and
  * keyboard, starts the app in its own process group, waits, and takes the screen
@@ -73,6 +73,7 @@ static void scan_dir(const char *dir)
 			else if (!strcmp(line, "Path")) snprintf(a.path, sizeof(a.path), "%s", v);
 			else if (!strcmp(line, "Terminal")) a.terminal = !strcasecmp(v, "true");
 			else if (!strcmp(line, "NoDisplay") || !strcmp(line, "Hidden")) hide |= !strcasecmp(v, "true");
+			else if (!strcmp(line, "OnlyShowIn")) hide |= !strstr(v, "NimbleZero");
 		}
 		fclose(f);
 		for (char *c = a.exec; (c = strchr(c, '%')); )          /* drop %f %u ... field codes */
