@@ -4,13 +4,18 @@
 #  * user units linked in ~/.config/systemd/user/default.target.wants - this is
 #    the "offline enable" path the upstream applaunch postinst uses when systemd
 #    is not running - and those recorded for the user by the shim.
+# APPLaunch.service is the M5 launcher: it is started only when it is the launcher chosen
+# in Options (nz-admin boot-launcher), whatever its package linked.  Otherwise it and
+# NimbleZero's launcher would both draw on the screen.
 case "$1" in
 start)
+	launcher=$(nz-admin boot-launcher 2>/dev/null)
 	for u in /var/lib/nz-units/enabled/system/*; do [ -e "$u" ] && nz-unit start "${u##*/}"; done
 	while IFS=: read -r name _ uid _ _ home _; do
 		[ "$uid" -ge 1000 ] 2>/dev/null && [ "$uid" -lt 60000 ] || continue
 		for u in "$home"/.config/systemd/user/default.target.wants/* /var/lib/nz-units/enabled/user-"$uid"/*; do
 			[ -e "$u" ] || [ -L "$u" ] || continue
+			[ "${u##*/}" = APPLaunch.service ] && [ "$launcher" != m5 ] && continue
 			nz-unit --user "$uid" start "${u##*/}"
 		done
 	done < /etc/passwd

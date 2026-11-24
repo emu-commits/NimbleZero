@@ -13,6 +13,8 @@
 #   nz-admin set volume 0..100           speaker volume (per cent), kept across boots
 #   nz-admin apply-volume                (boot) restore the saved volume
 #   nz-admin set launcher native|m5      which launcher starts at boot
+#   nz-admin switch-launcher native|m5   the same, and change over to it now
+#   nz-admin boot-launcher               (boot) which launcher to start: native or m5
 #   nz-admin set bootlog on|off          boot log on the boot partition (nz-logs/)
 #   nz-admin set wifi-country XX         regulatory domain (two letters), 00 = world default
 #   nz-admin set timezone Region/City    time zone (from /usr/share/zoneinfo)
@@ -33,6 +35,33 @@ get() { v=$(cat "$N/$1" 2>/dev/null); echo "${v:-$2}"; }
 hash_of() { sed -n 's/^zero:\([^:]*\):.*/\1/p' /etc/shadow 2>/dev/null; }
 has_password() { case "$(hash_of)" in '$'*) return 0 ;; esac; return 1; }
 ssh_running() { /etc/init.d/S50dropbear status; }
+
+# The M5 launcher (APPLaunch) runs as the user service APPLaunch.service, which its package
+# enables by linking it into ~/.config/systemd/user/default.target.wants.  It owns the
+# screen when it is installed, enabled and not overruled by "launcher=native" (no choice
+# saved = the M5 launcher, as its package intends).  nz-console uses the same test.
+APPL=/usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch
+m5_enabled() { ls /home/*/.config/systemd/user/default.target.wants/APPLaunch.service >/dev/null 2>&1; }
+m5_chosen() { [ "$(get launcher "")" != native ] && [ -x $APPL ] && m5_enabled; }
+kill_tree() { for c in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$c"; done; kill "$1" 2>/dev/null; }
+restart_console() {   # init starts the console on the LCD again, and it picks the launcher
+	# (nz-console writes its PID; it is still nz-console, or the sleep it became for APPLaunch)
+	p=$(cat /run/nz/console-tty1.pid 2>/dev/null)
+	[ -n "$p" ] && tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -qE 'nz-console|^sleep ' && kill_tree "$p"
+}
+switch_now() {   # runs detached: the app that asked (in either launcher) is killed on the way
+	# Stopping APPLaunch signals everything it started, and this process can still be one of
+	# them (tested: it got SIGTERM and the console was never restarted).  Ignore it - but not
+	# in what it starts: an ignored signal is inherited, and an APPLaunch that ignores
+	# SIGTERM can no longer be stopped (also tested).
+	trap '' TERM HUP INT
+	sleep 1
+	if [ "$1" = native ]; then
+		nz-unit --user 1000 stop APPLaunch.service 2>/dev/null; restart_console
+	else
+		restart_console; sleep 1; ( trap - TERM HUP INT; exec nz-unit --user 1000 start APPLaunch.service )
+	fi
+}
 
 vol_ctl() {    # the first playback volume control of the sound card, preferring the usual names
 	list=$(amixer scontrols 2>/dev/null | sed -n "s/^Simple mixer control '\\(.*\\)',0$/\\1/p")
@@ -141,6 +170,37 @@ ntp)
 		hwclock -w -u 2>/dev/null; : > /run/nz/ntp-done; date ;;
 	*) die "ntp: on, off, status or sync" ;;
 	esac ;;
+switch-launcher)
+	case "$2" in
+	native) put launcher native ;;
+	m5)	[ -x $APPL ] || die "the M5 launcher is not installed (Store > M5 Launcher)"
+		u=$(getent passwd 1000 | cut -d: -f1); h=$(getent passwd 1000 | cut -d: -f6)
+		[ -n "$u" ] && [ -f /usr/lib/systemd/user/APPLaunch.service ] || die "APPLaunch.service is missing"
+		# enable it the way its package does, in case the link was removed
+		install -d -o "$u" "$h/.config/systemd/user/default.target.wants"
+		ln -sfn /usr/lib/systemd/user/APPLaunch.service "$h/.config/systemd/user/default.target.wants/APPLaunch.service"
+		put launcher m5 ;;
+	*) die "switch-launcher: native or m5" ;;
+	esac
+	setsid "$0" switch-now "$2" </dev/null >/dev/null 2>&1 &
+	exit 0 ;;
+switch-now)     # internal: the second half of switch-launcher
+	case "$2" in native|m5) switch_now "$2" ;; *) die "switch-now: native or m5" ;; esac ;;
+boot-launcher)
+	# Ways back to NimbleZero's launcher that need no SSH (the M5 launcher has none):
+	#  * a file named nz-native-launcher (or nz-native-launcher.txt) on the FAT boot
+	#    partition, put there from any PC; it is removed once used;
+	#  * Del (Backspace) or Esc held down while the device starts.
+	for f in /boot/nz-native-launcher /boot/nz-native-launcher.txt; do
+		[ -e "$f" ] || continue
+		put launcher native
+		echo "nz-admin: $f found: NimbleZero's launcher chosen" >&2
+		mount -o remount,rw /boot 2>/dev/null && { rm -f "$f"; sync; mount -o remount,ro /boot; }
+	done
+	if m5_chosen && nz-keyheld -w 1500 14 1 2>/dev/null; then
+		put launcher native; echo "nz-admin: key held at start: NimbleZero's launcher chosen" >&2
+	fi
+	m5_chosen && echo m5 || echo native ;;
 apply-volume) v=$(get volume ""); [ -n "$v" ] && set_volume "$v" ;;
 set-password) set_password "$2" ;;
 wifi) exec nz-wifi ;;

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=NimbleZero launcher
+Comment=Back to NimbleZero's launcher, now and at every start
+Exec=/usr/bin/nz-native-launcher
+Icon=share/images/setting_100.png
+Terminal=false
+OnlyShowIn=APPLaunch;

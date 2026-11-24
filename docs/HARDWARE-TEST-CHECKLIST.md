@@ -101,6 +101,14 @@ After each numbered block, the newest `nz-logs/boot-N.txt` from the boot partiti
       **Then use the POWER switch** (the sequence that made rc7 unbootable) and switch on.
       Expected: it boots to the NimbleZero launcher.
 - [ ] D3 If D2 fails to boot: reflash; your data should still be there (that is test E).
+- [ ] D4 Ways back from the M5 launcher without SSH (install it again and choose it first,
+      as in D1). Each should end in the NimbleZero launcher, and stay there after the next
+      start: (a) in the M5 launcher's app list, open "NimbleZero launcher"; (b) hold Del
+      while switching on, until the NimbleZero launcher appears; (c) on a PC, put an empty
+      file named `nz-native-launcher` on the NZBOOT partition, then start the device.
+- [ ] D5 Options > Launcher at start > NimbleZero launcher while the M5 launcher is installed,
+      then switch off and on: only the NimbleZero launcher runs (`pidof
+      M5CardputerZero-APPLaunch` prints nothing).
 
 ## E. Data across a reflash
 

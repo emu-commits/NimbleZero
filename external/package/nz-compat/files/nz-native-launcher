@@ -1,0 +1,5 @@
+#!/bin/sh
+# nz-native-launcher - the "NimbleZero launcher" entry in the M5 launcher's app list
+# (nz-native-launcher.desktop): change over to NimbleZero's launcher now and at every start,
+# until the M5 launcher is chosen again in Options > Launcher at start.
+exec sudo -n /usr/sbin/nz-admin switch-launcher native
