@@ -8,6 +8,7 @@ OFFICIAL=/usr/share/nz/store-official.list
 A="sudo -n /usr/sbin/nz-admin"; [ "$(id -u)" = 0 ] && A=/usr/sbin/nz-admin
 T=$(mktemp -d /tmp/nz-store.XXXXXX) || exit 1
 trap 'rm -rf "$T"' EXIT
+trap 'exit 1' INT TERM HUP        # killed (Ctrl+Alt+Backspace): still clean up through EXIT
 TAB=$(printf '\t'); US=$(printf '\037')      # catalogue fields are separated by US
 pause() { printf '\nPress Enter '; IFS= read -r _; }
 
@@ -60,56 +61,84 @@ age() {
 	echo "index from $(date -d "@$(cat $C/refreshed)" '+%Y-%m-%d %H:%M' 2>/dev/null)"
 }
 
+info() {         # $1 = text: heading lines of the page (nz-pick cannot select them)
+	printf '%s\n' "$1" | fold -s -w 37 | sed 's/^/-/' >> "$T/page"
+}
+other_m5_apps() {   # names of installed M5 apps other than the launcher itself, comma-separated
+	for f in /usr/share/APPLaunch/applications/*.desktop; do
+		o=$(dpkg -S "$f" 2>/dev/null | cut -d: -f1)
+		[ -n "$o" ] && [ "$o" != applaunch ] && sed -n 's/^Name=//p' "$f" | head -n1
+	done | sort -u | awk 'NR > 1 { printf ", " } { printf "%s", $0 }'
+}
+confirm_remove() {  # $1 package, $2 title; asks, with "No" preselected
+	: > "$T/page"
+	info "$2 and its files are deleted from the device."
+	if [ "$1" = applaunch ]; then
+		o=$(other_m5_apps); [ -n "$o" ] && info "These M5 apps stay installed: $o."
+	fi
+	h=$(wc -l < "$T/page")
+	printf '%s\n' "No, keep it" "Yes, remove $2" >> "$T/page"
+	n=$(nz-pick "Remove $2?" < "$T/page") || return 1
+	[ "$n" = $((h + 2)) ]
+}
+
 details() {      # $1 kind, $2 package
 	kind=$1; pkg=$2
-	while :; do
-		v=$(installed_ver "$pkg")
-		clear 2>/dev/null
-		if [ "$kind" = official ]; then
-			IFS='|' read -r _ repo title desc <<E2
+	v=$(installed_ver "$pkg")
+	: > "$T/page"
+	if [ "$kind" = official ]; then
+		IFS='|' read -r _ repo title desc <<E2
 $(grep "^$pkg|" $OFFICIAL)
 E2
-			echo "$title"; echo "$desc"; echo "Source: github.com/CardputerZero/$repo"
-			dep=; ver="latest release"
-		else
-			IFS="$US" read -r _ ver size sha url dep desc <<E2
+		info "$desc"; info "GitHub: CardputerZero/$repo"
+		ver="latest release"; m=
+	else
+		IFS="$US" read -r _ ver size sha url dep desc <<E2
 $(awk -F'\037' -v n="$pkg" '$1==n' $C/catalogue.tsv)
 E2
-			echo "$pkg $ver"; echo "$desc" | fold -s -w 52
-			echo "Download: $(( (size + 1023) / 1024 )) KB"
-			[ -n "$dep" ] && echo "Needs: $dep" | fold -s -w 52
-			m=$(missing "$dep"); [ -n "$m" ] && { echo; echo "Cannot be installed: this OS lacks"; echo "  $m" | fold -s -w 52; }
-		fi
-		[ -n "$v" ] && echo "Installed: $v"
-		echo "System space free: $(df -h / | awk 'END{print $4}')"
-		pause
-		: > "$T/act"
-		if [ -n "$v" ]; then
-			[ "$kind" = official ] && echo "Update to the latest release" >> "$T/act" || { [ "$v" != "$ver" ] && echo "Update to $ver" >> "$T/act"; }
-			echo "Remove" >> "$T/act"
-		else echo "Install" >> "$T/act"; fi
+		title=$pkg
+		info "$desc"; info "Version $ver, download $(( (size + 1023) / 1024 )) KB"
+		[ -n "$dep" ] && info "Needs: $dep"
+		m=$(missing "$dep"); [ -n "$m" ] && info "Cannot be installed: this OS lacks $m"
+	fi
+	[ -n "$v" ] && info "Installed: $v"
+	info "System space free: $(df -h / | awk 'END{print $4}')"
+	# The actions are on the page itself.  For an installed app "Back" comes first, so
+	# opening it and pressing Enter again changes nothing (it used to reinstall it).
+	: > "$T/act"
+	if [ -n "$v" ]; then
 		echo "Back" >> "$T/act"
-		n=$(nz-pick "$pkg" < "$T/act") || return
-		case "$(sed -n "${n}p" "$T/act")" in
-		Install|Update*) clear 2>/dev/null; $A store install "$pkg"; pause; return 10 ;;
-		Remove) clear 2>/dev/null; $A store remove "$pkg"; pause; return 10 ;;
-		*) return ;;
-		esac
-	done
+		if [ "$kind" = official ]; then echo "Update (latest release)" >> "$T/act"
+		elif [ "$v" != "$ver" ]; then echo "Update to $ver" >> "$T/act"; fi
+		echo "Remove" >> "$T/act"
+	else
+		[ -z "$m" ] && echo "Install" >> "$T/act"
+		echo "Back" >> "$T/act"
+	fi
+	h=$(wc -l < "$T/page"); cat "$T/act" >> "$T/page"
+	n=$(nz-pick "$title" "Enter:choose  F/X:move  Esc:back" < "$T/page") || return
+	case "$(sed -n "$((n - h))p" "$T/act")" in
+	Install|Update*) clear 2>/dev/null; $A store install "$pkg"; pause; return 10 ;;
+	Remove) confirm_remove "$pkg" "$title" || return
+		clear 2>/dev/null; $A store remove "$pkg"; pause; return 10 ;;
+	*) return ;;
+	esac
 }
 
 if [ "${1:-}" = --list ]; then build_list; paste "$T/keys" "$T/rows"; exit 0; fi   # headless (tests)
-pos=1
+pos=1; rebuild=1
 while :; do
-	clear 2>/dev/null; echo "Store: reading the app list..."
-	build_list
+	if [ -n "$rebuild" ]; then      # only when something changed: it takes several seconds
+		clear 2>/dev/null; echo "Store: reading the app list..."
+		build_list; rebuild=
+	fi
 	n=$(nz-pick -s "$pos" "Store" "Enter:open  F/X:move  Z/C:page  Esc:back" < "$T/rows") || exit 0
 	pos=$n
 	IFS="$TAB" read -r kind pkg <<E2
 $(sed -n "${n}p" "$T/keys")
 E2
 	case "$kind" in
-	refresh) clear 2>/dev/null; $A store refresh || true; pause ;;
-	official|index) details "$kind" "$pkg"; [ $? = 10 ] && pos=1 ;;      # the list changed: back to the top
+	refresh) clear 2>/dev/null; $A store refresh || true; pause; rebuild=1 ;;
+	official|index) details "$kind" "$pkg"; [ $? = 10 ] && { pos=1; rebuild=1; } ;;   # the list changed: back to the top
 	esac
 done

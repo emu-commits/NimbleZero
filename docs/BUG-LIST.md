@@ -18,6 +18,12 @@ Commands were renamed from `cz-*` to `nz-*` in rc8; older reports used the `cz-`
 | B14 | medium | Recorder (official M5 app): recording appears to work and a file is saved, but it cannot be played back. | hw:unit1 | open; cause unknown, details requested (what happens on playback, size of the saved file, `/tmp/nz-app.log`). Not reproducible in the emulator (no sound card). |
 | B15 | low | Cardputer TV: sound lags the picture more than on the stock firmware (where it also lags, at a much lower frame rate). | hw:unit1 | open; owner attributes it to the app for now. Not investigated. |
 
+## Fixed after v0.1.0
+
+| # | Bug | Fix | Verified |
+|---|---|---|---|
+| B19 | In the Store, the page of an installed app ended in "Press Enter" and looked like an install screen; the next menu preselected "Update to the latest release", so Enter, Enter reinstalled the app, and "Remove" was easy to miss. Removing asked nothing. When the Store was killed (Ctrl+Alt+Backspace) its temporary folder `/tmp/nz-store.*` stayed behind: the cleanup ran only on a normal exit. | The details and the actions are one page; for an installed app "Back" comes first and is preselected, then Update, then Remove. Remove asks "Remove X?" with "No, keep it" preselected; for the M5 launcher it names the M5 apps that stay installed. Returning from a page without a change no longer rebuilds the list (that took about 10 s). The cleanup also runs on INT, TERM and HUP. | hw (CardputerZero): M5 Launcher page, Enter: back to the list, still installed; Remove, "No": still installed; coinflip: Remove, Yes: removed, result readable. Store killed with SIGTERM to its process group: no `/tmp/nz-store.*` left. |
+
 ## Fixed in rc11, waiting for a hardware test
 
 | # | Bug | Fix | Verified |
