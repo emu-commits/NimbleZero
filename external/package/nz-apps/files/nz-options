@@ -53,16 +53,28 @@ usb() {
 	else clear; echo "Starting USB..."; $A usb on || pause; fi
 }
 launcher() {
-	n=$(printf '%s\n' "NimbleZero launcher${TAB}${TAB}this launcher" "M5 launcher${TAB}${TAB}M5Stack APPLaunch (install it from the Store)" | pick "Launcher at start") || return
-	if [ $n = 2 ]; then
+	# rows: emuZero (only when installed), NimbleZero's launcher, the M5 launcher
+	ez=; [ "$(val emuzero-launcher)" = installed ] && ez=1
+	n=$( { [ -n "$ez" ] && printf '%s\n' "emuZero${TAB}${TAB}icons, themes, app info"
+		printf '%s\n' "NimbleZero launcher${TAB}${TAB}simple text list" "M5 launcher${TAB}${TAB}M5Stack APPLaunch (install it from the Store)"; } | pick "Launcher at start") || return
+	[ -n "$ez" ] || n=$((n + 1))
+	case $n in 1) l=emuzero; t=emuZero ;; 2) l=native; t="NimbleZero's launcher" ;; *) l=m5; t="The M5 launcher" ;; esac
+	[ "$l" = "$(val launcher)" ] && [ -z "$(val launcher-now)" ] && return
+	if [ $l = m5 ]; then
 		[ "$(val m5-launcher)" = installed ] || { clear; echo "The M5 launcher is not installed."; echo "Install it first: Store > M5 Launcher."; pause; return; }
-		m=$(printf '%s\n' "-Ways back to this launcher:" "- M5 app list: NimbleZero launcher" "- hold Del while switching on" "- or from a PC: an empty file named" "-   nz-native-launcher on NZBOOT" \
-			"Switch at the next start" "Switch now" "Cancel" | pick "M5 launcher") || return
-		case $m in
-		6) $A set launcher m5; clear; echo "The M5 launcher starts at the next start."; pause ;;
-		7) $A switch-launcher m5 || pause ;;
-		esac
-	else $A set launcher native; fi
+		# the heading lines cannot be chosen; h = how many come before the choices
+		h=5; [ -n "$ez" ] && h=6
+		m=$( { printf '%s\n' "-Ways back:" "- M5 app list: NimbleZero launcher"
+			[ -n "$ez" ] && printf '%s\n' "-   or emuZero launcher"
+			printf '%s\n' "- hold Del while switching on" "- or from a PC: an empty file named" "-   nz-native-launcher on NZBOOT" \
+				"Switch at the next start" "Switch now" "Cancel"; } | pick "M5 launcher") || return
+		case $((m - h)) in 1) w=next ;; 2) w=now ;; *) return ;; esac
+	else
+		m=$(printf '%s\n' "Switch now" "Switch at the next start" "Cancel" | pick "$t") || return
+		case $m in 1) w=now ;; 2) w=next ;; *) return ;; esac
+	fi
+	if [ $w = now ]; then $A switch-launcher $l || pause
+	else $A set launcher $l && { clear; echo "$t starts at the next start."; pause; }; fi
 }
 about() {
 	clear
@@ -87,7 +99,7 @@ while :; do
 	S=$($A status)
 	b=$(val brightness); max=$(cat /sys/class/backlight/*/max_brightness 2>/dev/null | head -n1)
 	case "$b" in ''|*[!0-9]*) bt= ;; *) bt="$(( b * 100 / ${max:-100} ))%" ;; esac
-	[ "$(val launcher)" = m5 ] && lt="M5" || lt="NimbleZero"
+	case "$(val launcher)" in m5) lt=M5 ;; emuzero) lt=emuZero ;; *) lt=NimbleZero ;; esac
 	n=$(printf '%s\n' \
 		"Brightness$TAB$bt" \
 		"Screen off after$TAB$(secs "$(val screen-off)")" \

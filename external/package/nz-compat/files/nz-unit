@@ -36,6 +36,8 @@ supervise() {
 		as_user "$(key ExecStart | tail -n1)" & echo $! > "$RUN/$UNIT.main"
 		wait $!; rc=$?
 		rm -f "$RUN/$UNIT.main"; echo "$rc" > "$RUN/$UNIT.exit"
+		# uptime of each end, the last 10 (nz-console replaces a launcher that keeps ending)
+		{ tail -n 9 "$RUN/$UNIT.exits" 2>/dev/null; cut -d' ' -f1 /proc/uptime; } > "$RUN/$UNIT.exits.new" && mv "$RUN/$UNIT.exits.new" "$RUN/$UNIT.exits"
 		case "$(key Restart)" in always) ;; on-failure) [ $rc -ne 0 ] || break ;; *) break ;; esac
 		[ -f "$FILE" ] || break
 		sleep "$(key RestartSec | tr -cd '0-9' | grep . || echo 1)"

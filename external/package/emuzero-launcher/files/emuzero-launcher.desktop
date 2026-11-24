@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=emuZero launcher
+Comment=Change over to emuZero, now and at every start
+Exec=/usr/bin/emuzero-at-start
+Icon=share/images/setting_100.png
+Terminal=false
+OnlyShowIn=APPLaunch;

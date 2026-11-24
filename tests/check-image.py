@@ -193,6 +193,12 @@ if os.path.exists(R("/etc/inittab")):
                                                  "/usr/share/applications/nz-options.desktop", "/usr/share/applications/nz-services.desktop", "/usr/share/applications/nz-store.desktop"]))
         check("multimedia: ffmpeg, ffprobe, PulseAudio (daemon, pactl, libpulse), libv4l, v4l2-ctl",
               all(os.path.exists(R(f)) for f in ["/usr/bin/ffmpeg", "/usr/bin/ffprobe", "/usr/bin/pulseaudio", "/usr/bin/pactl", "/usr/lib/libpulse.so.0", "/usr/lib/libv4l2.so.0", "/usr/bin/v4l2-ctl"]))
+    if os.path.exists(R("/usr/bin/emuzero-launcher")):
+        con, adm = sh_("/usr/bin/nz-console"), sh_("/usr/sbin/nz-admin")
+        check("emuZero launcher: started by the console, offered by nz-admin, entry in the M5 app list, a theme",
+              "emuzero-launcher" in con and "third_exit" in con and "emuzero)" in adm
+              and os.path.exists(R("/usr/bin/emuzero-at-start")) and os.path.exists(R("/usr/share/APPLaunch/applications/emuzero-launcher.desktop"))
+              and os.path.isfile(R("/usr/share/emuzero/themes/minimal/theme.conf")))
     check("licence texts shipped in the image", os.path.isfile(R("/usr/share/licenses/NimbleZero/COPYING")) and os.path.isfile(R("/usr/share/licenses/manifest.csv")))
     check("no boot-time seed file write (S01seedrng removed)", not os.path.exists(R("/etc/init.d/S01seedrng")))
 check("config.txt disables the firmware framebuffer", parse_cfg(B("config.txt"))[0].get("max_framebuffers") == "0")
