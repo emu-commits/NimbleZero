@@ -89,7 +89,9 @@ After each numbered block, the newest `nz-logs/boot-N.txt` from the boot partiti
 - [ ] C3 Install one app from "Can be installed" in the index part (for example `kanstl` or
       `craps`). Does it install, appear in the launcher and start?
 - [ ] C4 Open an app under "Need software this OS lacks": does the page name what is missing?
-- [ ] C5 Remove the app from C3 in the Store.
+- [ ] C5 Remove the app from C3 in the Store: open it (the page shows the details and the
+      actions; "Back" is preselected, so Enter returns to the list without changing
+      anything), choose Remove, then "Yes, remove" (the question starts on "No").
 - [ ] C6 Music or Recorder (official): do they install now, start, and play or record sound?
 - [ ] C7 Install a Python app from the index, for example `airfiles`. Does it start and draw
       its screen? (In the emulator it only drew to a file.)
