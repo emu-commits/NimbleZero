@@ -5,16 +5,36 @@
 #   apt-get update                      no-op
 #   apt-get install [-y] ./pkg.deb ...  dependency check against the dpkg database, then dpkg -i
 #   apt-get install [-y] NAME ...       succeeds only if NAME is already installed/provided
-#   apt-get remove|purge NAME ...       dpkg -r / dpkg -P
-VERB=; PKGS=; DPKG_OPTS=
+#   apt-get remove|purge NAME ...       dpkg -r / dpkg -P  (remove --purge = purge)
+#   -s, --simulate, --dry-run, --just-print, --recon, --no-act: only print what would be done
+# Options apt-get takes that change nothing here (-y, -q, --no-install-recommends ...) are
+# accepted.  Any other option is refused, as apt-get does, rather than silently ignored:
+# a test with "apt-get -s remove" once really removed a package.
+VERB=; PKGS=; DPKG_OPTS=; SIM=; PURGE=
+bad_opt() { echo "E: Command line option '$1' is not understood (apt-get shim of this system)" >&2; exit 100; }
 while [ $# -gt 0 ]; do
 	case "$1" in
 	-o) case "$2" in Dpkg::Options::=*) DPKG_OPTS="$DPKG_OPTS ${2#Dpkg::Options::=}" ;; esac; shift ;;
-	-*) ;;
+	-o*) case "${1#-o}" in Dpkg::Options::=*) DPKG_OPTS="$DPKG_OPTS ${1#-oDpkg::Options::=}" ;; esac ;;
+	-t|-c|--target-release|--default-release|--config-file) shift ;;
+	-s|--simulate|--dry-run|--just-print|--recon|--no-act) SIM=1 ;;
+	--purge) PURGE=1 ;;
+	-y|--yes|--assume-yes|-q|-q=*|--quiet|--quiet=*|-f|--fix-broken|-m|--fix-missing|--ignore-missing|\
+	--no-install-recommends|--install-recommends|--no-install-suggests|--allow-downgrades|\
+	--allow-remove-essential|--allow-change-held-packages|--allow-unauthenticated|--force-yes|\
+	--reinstall|--auto-remove|--autoremove|--no-upgrade|--only-upgrade|-V|--verbose-versions|\
+	--show-progress|--no-download|--assume-no|--target-release=*|--default-release=*) ;;
+	--*) bad_opt "$1" ;;
+	-?*) o=${1#-}      # a cluster of one-letter options, like -qy or -sy
+		while [ -n "$o" ]; do
+			case "$o" in s*) SIM=1 ;; [yqfmV]*) ;; *) bad_opt "-${o%"${o#?}"}" ;; esac
+			o=${o#?}
+		done ;;
 	update|install|remove|purge|upgrade|dist-upgrade|autoremove|clean) [ -z "$VERB" ] && VERB=$1 || PKGS="$PKGS $1" ;;
 	*) PKGS="$PKGS $1" ;;
 	esac; shift
 done
+[ "$VERB" = remove ] && [ -n "$PURGE" ] && VERB=purge
 have() {   # have NAME [OP VERSION]
 	v=$(dpkg-query -W -f='${db:Status-Status} ${Version}' "$1" 2>/dev/null)
 	case "$v" in installed\ *)
@@ -52,8 +72,25 @@ install)
 		*) have "${p%%=*}" || { echo "E: Unable to locate package $p (this system has no APT repositories)" >&2; exit 100; } ;;
 		esac
 	done
+	if [ -n "$SIM" ]; then
+		for p in $debs; do echo "Inst $(dpkg-deb -f "$p" Package) ($(dpkg-deb -f "$p" Version))"; done
+		echo "(simulation: nothing was installed)"; exit 0
+	fi
 	[ -z "$debs" ] || dpkg $DPKG_OPTS -i $debs || exit 100 ;;
-remove) dpkg -r $PKGS || exit 100 ;;
-purge) dpkg -P $PKGS || exit 100 ;;
+remove|purge)
+	if [ -n "$SIM" ]; then
+		rc=0
+		for p in $PKGS; do
+			st=$(dpkg-query -W -f='${db:Status-Abbrev} ${Version}' "$p" 2>/dev/null)
+			case "$st" in
+			h*) echo "E: $p is part of the system; dpkg would refuse to remove it" >&2; rc=100 ;;
+			?i*) [ $VERB = purge ] && echo "Purg $p [${st##* }]" || echo "Remv $p [${st##* }]" ;;
+			?c*) [ $VERB = purge ] && echo "Purg $p [config files]" || echo "Package '$p' is not installed, so not removed" ;;
+			*) echo "Package '$p' is not installed, so not removed" ;;
+			esac
+		done
+		echo "(simulation: nothing was removed)"; exit $rc
+	fi
+	if [ $VERB = remove ]; then dpkg -r $PKGS || exit 100; else dpkg -P $PKGS || exit 100; fi ;;
 *) echo "apt-get (nz shim): unsupported command '$VERB'" >&2; exit 100 ;;
 esac
