@@ -92,6 +92,9 @@ After each numbered block, the newest `nz-logs/boot-N.txt` from the boot partiti
 - [ ] C5 Remove the app from C3 in the Store: open it (the page shows the details and the
       actions; "Back" is preselected, so Enter returns to the list without changing
       anything), choose Remove, then "Yes, remove" (the question starts on "No").
+- [ ] C5b Install it again, then remove it from the launcher: select it, press Del, then
+      "Yes, remove" (the question starts on "No"). Del on a NimbleZero app (for example
+      Diagnostics) says it cannot be removed.
 - [ ] C6 Music or Recorder (official): do they install now, start, and play or record sound?
 - [ ] C7 Install a Python app from the index, for example `airfiles`. Does it start and draw
       its screen? (In the emulator it only drew to a file.)
