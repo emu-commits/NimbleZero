@@ -45,6 +45,11 @@ define EMUZERO_LAUNCHER_INSTALL_TARGET_CMDS
 		mkdir -p $(TARGET_DIR)/usr/share/emuzero/themes && \
 		cp -a $(@D)/themes/. $(TARGET_DIR)/usr/share/emuzero/themes/; \
 	fi
+	# icons for apps without their own; README.md carries M5Stack's MIT notice for theirs
+	if [ -d $(@D)/icons ]; then \
+		mkdir -p $(TARGET_DIR)/usr/share/emuzero/icons && \
+		$(INSTALL) -m 0644 $(@D)/icons/*.png $(@D)/icons/README.md $(TARGET_DIR)/usr/share/emuzero/icons/; \
+	fi
 endef
 
 $(eval $(generic-package))
