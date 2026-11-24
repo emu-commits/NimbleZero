@@ -18,6 +18,12 @@ Commands were renamed from `cz-*` to `nz-*` in rc8; older reports used the `cz-`
 | B14 | medium | Recorder (official M5 app): recording appears to work and a file is saved, but it cannot be played back. | hw:unit1 | open; cause unknown, details requested (what happens on playback, size of the saved file, `/tmp/nz-app.log`). Not reproducible in the emulator (no sound card). |
 | B15 | low | Cardputer TV: sound lags the picture more than on the stock firmware (where it also lags, at a much lower frame rate). | hw:unit1 | open; owner attributes it to the app for now. Not investigated. |
 
+## Fixed after v0.1.0
+
+| # | Bug | Fix | Verified |
+|---|---|---|---|
+| B18 | The `apt-get` shim treated every option as a no-op, including `-s`/`--simulate`/`--dry-run`: `apt-get -s remove applaunch` really removed the M5 launcher. | `-s` and its synonyms only print what would be done (`Inst`, `Remv`, `Purg` lines, as apt-get does) and change nothing; `remove --purge` purges; options apt-get takes that change nothing here (`-y`, `-q`, `--no-install-recommends`, ...) are accepted; any other option is refused with apt-get's own message and exit status 100. New test T7. | hw (CardputerZero): `-s`, `--dry-run`, `-sy`, `-s --purge` on the installed APPLaunch print `Remv`/`Purg` and leave it installed; a firmware package is reported as refused; `--bogus` and `-x` exit 100 and change nothing; `-y -q --no-install-recommends install ./x.deb` still installs. |
+
 ## Fixed in rc11, waiting for a hardware test
 
 | # | Bug | Fix | Verified |
