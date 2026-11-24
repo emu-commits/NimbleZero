@@ -86,6 +86,9 @@ After each numbered block, the newest `nz-logs/boot-N.txt` from the boot partiti
       `craps`). Does it install, appear in the launcher and start?
 - [ ] C4 Open an app under "Need software this OS lacks": does the page name what is missing?
 - [ ] C5 Remove the app from C3 in the Store.
+- [ ] C5b Install it again, then remove it from the launcher: select it, press Del, then
+      "Yes, remove" (the question starts on "No"). Del on a NimbleZero app (for example
+      Diagnostics) says it cannot be removed.
 - [ ] C6 Music or Recorder (official): do they install now, start, and play or record sound?
 - [ ] C7 Install a Python app from the index, for example `airfiles`. Does it start and draw
       its screen? (In the emulator it only drew to a file.)

@@ -18,7 +18,7 @@ endef
 
 define NZ_APPS_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/nz-snake $(TARGET_DIR)/usr/bin/nz-snake
-	$(foreach s,nz-wifi nz-netinfo nz-ssh nz-poweroff nz-options nz-services nz-store nz-store-backend,$(INSTALL) -D -m 0755 $(@D)/$(s) $(TARGET_DIR)/usr/bin/$(s)
+	$(foreach s,nz-wifi nz-netinfo nz-ssh nz-poweroff nz-options nz-services nz-store nz-store-backend nz-app-remove,$(INSTALL) -D -m 0755 $(@D)/$(s) $(TARGET_DIR)/usr/bin/$(s)
 	)
 	$(INSTALL) -D -m 0644 $(@D)/store-official.list $(TARGET_DIR)/usr/share/nz/store-official.list
 	mkdir -p $(TARGET_DIR)/usr/share/applications

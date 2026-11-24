@@ -46,7 +46,8 @@ the Store are not. If you build your own images, use the same variant as before.
 ## Using it
 
 - **Launcher keys:** F / X up and down, Z / C page up and down, Enter starts, O opens
-  Options. The arrow keys with Fn work too. Ctrl+Alt+Backspace closes a hanging app.
+  Options, Del removes the selected app (it asks first; NimbleZero's own apps cannot be
+  removed). The arrow keys with Fn work too. Ctrl+Alt+Backspace closes a hanging app.
 - **Options:** brightness, screen-off time, volume, Wi-Fi network and country, time zone,
   which launcher starts (NimbleZero's or M5Stack's), password, services (SSH, network
   time), erase all data.

@@ -25,6 +25,8 @@
  * work as arrows without Fn:  F up, X down, Z page up, C page down.
  *       Up/Down (or F/X, K/J, W/S)  select    Enter  launch    R  rescan
  *       Z / C (or Left/Right, Tab)  page      O      options   Q  quit to login
+ *       Del (Backspace)  remove the selected app (nz-app-remove: asks first; apps that
+ *                        are part of the system are refused)
  */
 #define _GNU_SOURCE
 #define NZUI_IMPLEMENTATION
@@ -44,7 +46,7 @@
 #include <linux/input-event-codes.h>
 
 #define MAXAPPS 96
-struct app { char name[40], comment[48], exec[256], path[128]; int terminal; };
+struct app { char name[40], comment[48], exec[256], path[128]; int terminal; char file[256]; };
 static struct app apps[MAXAPPS]; static int napps, sel, top;
 static char status[64];
 static const char *extra_dir;
@@ -61,6 +63,7 @@ static void scan_dir(const char *dir)
 		snprintf(p, sizeof(p), "%s/%s", dir, e->d_name);
 		if (!(f = fopen(p, "r"))) continue;
 		memset(&a, 0, sizeof(a));
+		snprintf(a.file, sizeof(a.file), "%s", p);
 		while (fgets(line, sizeof(line), f)) {
 			char *v; line[strcspn(line, "\r\n")] = 0;
 			if (line[0] == '[') { in = !strcmp(line, "[Desktop Entry]"); continue; }
@@ -143,7 +146,7 @@ static void draw(void)
 	}
 	if (!napps) nzui_text(6, 40, NZUI_GREY, "no applications installed");
 	nzui_rect(0, nzui_h - 11, nzui_w, 11, NZUI_RGB(25, 25, 25));
-	nzui_text(4, nzui_h - 9, NZUI_GREY, "%.39s", status[0] ? status : "Enter:run  O:options  F/X:move");
+	nzui_text(4, nzui_h - 9, NZUI_GREY, "%.39s", status[0] ? status : "Enter:run O:options Del:remove F/X:move");
 	nzui_flush();
 }
 
@@ -245,11 +248,18 @@ int main(int argc, char **argv)
 			case KEY_R: scan(); snprintf(status, sizeof(status), "%d applications", napps); break;
 			case KEY_O:
 				if (ev.value == 1) {
-					static struct app opt = { "Options", "", "nz-options", "", 1 };
+					static struct app opt = { "Options", "", "nz-options", "", 1, "" };
 					run_app(&opt); scan(); idle_s = idle_setting(); last_key = time(NULL);
 				}
 				break;
 			case KEY_ENTER: if (napps && ev.value == 1) { run_app(&apps[sel]); scan(); idle_s = idle_setting(); last_key = time(NULL); } break;
+			case KEY_BACKSPACE: case KEY_DELETE:      /* remove the app: the helper asks first */
+				if (napps && ev.value == 1 && !strchr(apps[sel].file, '\'')) {
+					struct app rm = { "Remove", "", "", "", 1, "" };
+					snprintf(rm.exec, sizeof(rm.exec), "nz-app-remove '%s'", apps[sel].file);
+					run_app(&rm); scan(); last_key = time(NULL);
+				}
+				break;
 			case KEY_Q: if (ev.value == 1) { nzui_quit(); return 0; } break;
 			}
 		}
