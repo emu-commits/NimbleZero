@@ -1,0 +1,14 @@
+config BR2_PACKAGE_EMUZERO_LAUNCHER
+	bool "emuzero-launcher (emuZero launcher, LVGL)"
+	depends on BR2_USE_MMU
+	select BR2_PACKAGE_FREETYPE
+	select BR2_PACKAGE_LIBPNG
+	help
+	  The emuZero launcher: a thin LVGL front end for NimbleZero's
+	  apps, Settings, Wi-Fi and Store. Installs
+	  /usr/bin/emuzero-launcher; nz-launcher stays the default
+	  until the launcher choice offers emuZero.
+
+	  LVGL 9.2.2 is built into the program (MIT).
+
+	  https://github.com/emu-commits/emuzero-launcher
