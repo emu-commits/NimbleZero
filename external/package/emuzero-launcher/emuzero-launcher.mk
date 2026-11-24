@@ -17,7 +17,7 @@ EMUZERO_LAUNCHER_EXTRA_DOWNLOADS = \
 	https://github.com/lvgl/lvgl/archive/v$(EMUZERO_LAUNCHER_LVGL_VERSION)/$(EMUZERO_LAUNCHER_LVGL_TARBALL)
 
 # Local builds of a working tree: set EMUZERO_LAUNCHER_OVERRIDE_SRCDIR in local.mk.
-EMUZERO_LAUNCHER_OVERRIDE_SRCDIR_RSYNC_EXCLUSIONS = --exclude out --exclude spike/out
+EMUZERO_LAUNCHER_OVERRIDE_SRCDIR_RSYNC_EXCLUSIONS = --exclude out --exclude spike/out --exclude .git
 
 # With EMUZERO_LAUNCHER_OVERRIDE_SRCDIR (local.mk) the source tree arrives by rsync and
 # brings its own third_party/lvgl (from third_party/fetch.sh); otherwise unpack the tarball.
@@ -38,6 +38,13 @@ endef
 
 define EMUZERO_LAUNCHER_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/out/buildroot/emuzero-launcher $(TARGET_DIR)/usr/bin/emuzero-launcher
+	$(INSTALL) -D -m 0755 $(EMUZERO_LAUNCHER_PKGDIR)/files/emuzero-at-start $(TARGET_DIR)/usr/bin/emuzero-at-start
+	$(INSTALL) -D -m 0644 $(EMUZERO_LAUNCHER_PKGDIR)/files/emuzero-launcher.desktop \
+		$(TARGET_DIR)/usr/share/APPLaunch/applications/emuzero-launcher.desktop
+	if [ -d $(@D)/themes ]; then \
+		mkdir -p $(TARGET_DIR)/usr/share/emuzero/themes && \
+		cp -a $(@D)/themes/. $(TARGET_DIR)/usr/share/emuzero/themes/; \
+	fi
 endef
 
 $(eval $(generic-package))

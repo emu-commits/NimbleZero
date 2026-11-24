@@ -6,8 +6,9 @@ config BR2_PACKAGE_EMUZERO_LAUNCHER
 	help
 	  The emuZero launcher: a thin LVGL front end for NimbleZero's
 	  apps, Settings, Wi-Fi and Store. Installs
-	  /usr/bin/emuzero-launcher; nz-launcher stays the default
-	  until the launcher choice offers emuZero.
+	  /usr/bin/emuzero-launcher and its themes; Options > Launcher
+	  at start offers it, and an entry in the M5 launcher's app
+	  list changes over to it.
 
 	  LVGL 9.2.2 is built into the program (MIT).
 

@@ -12,9 +12,9 @@
 #   nz-admin set screen-off 0|15..3600   launcher: seconds of idle before the screen goes dark
 #   nz-admin set volume 0..100           speaker volume (per cent), kept across boots
 #   nz-admin apply-volume                (boot) restore the saved volume
-#   nz-admin set launcher native|m5      which launcher starts at boot
-#   nz-admin switch-launcher native|m5   the same, and change over to it now
-#   nz-admin boot-launcher               (boot) which launcher to start: native or m5
+#   nz-admin set launcher native|emuzero|m5     which launcher starts at boot
+#   nz-admin switch-launcher native|emuzero|m5  the same, and change over to it now
+#   nz-admin boot-launcher               (boot) which launcher to start: native, emuzero or m5
 #   nz-admin set bootlog on|off          boot log on the boot partition (nz-logs/)
 #   nz-admin set wifi-country XX         regulatory domain (two letters), 00 = world default
 #   nz-admin set timezone Region/City    time zone (from /usr/share/zoneinfo)
@@ -69,13 +69,33 @@ ssh_running() { /etc/init.d/S50dropbear status; }
 # screen when it is installed, enabled and not overruled by "launcher=native" (no choice
 # saved = the M5 launcher, as its package intends).  nz-console uses the same test.
 APPL=/usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch
+EZ=/usr/bin/emuzero-launcher
 m5_enabled() { ls /home/*/.config/systemd/user/default.target.wants/APPLaunch.service >/dev/null 2>&1; }
-m5_chosen() { [ "$(get launcher "")" != native ] && [ -x $APPL ] && m5_enabled; }
+# The launcher chosen in Options; else the image's default (/etc/nz/defaults launcher=, so an
+# image can start emuZero and installing the M5 launcher does not take over); else the M5
+# launcher once it is installed, NimbleZero's otherwise.
+launcher_choice() {
+	v=$(get launcher ""); [ -n "$v" ] || v=$(dflt launcher "")
+	[ -n "$v" ] || { [ -x $APPL ] && v=m5 || v=native; }
+	echo "$v"
+}
+m5_chosen() { [ "$(launcher_choice)" = m5 ] && [ -x $APPL ] && m5_enabled; }
+# what really starts: a chosen launcher that is not installed (any more) gives NimbleZero's
+boot_choice() {
+	case "$(launcher_choice)" in
+	m5) m5_chosen && echo m5 || echo native ;;
+	emuzero) [ -x $EZ ] && echo emuzero || echo native ;;
+	*) echo native ;;
+	esac
+}
 kill_tree() { for c in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$c"; done; kill "$1" 2>/dev/null; }
 restart_console() {   # init starts the console on the LCD again, and it picks the launcher
 	# (nz-console writes its PID; it is still nz-console, or the sleep it became for APPLaunch)
 	p=$(cat /run/nz/console-tty1.pid 2>/dev/null)
-	[ -n "$p" ] && tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -qE 'nz-console|^sleep ' && kill_tree "$p"
+	# Stopped first: nz-console starts emuZero again when it exits, and would do so between
+	# the launcher's end and its own (the TERM waits until CONT).
+	[ -n "$p" ] && tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null | grep -qE 'nz-console|^sleep ' &&
+		{ kill -STOP "$p"; kill_tree "$p"; kill -CONT "$p"; }
 }
 switch_now() {   # runs detached: the app that asked (in either launcher) is killed on the way
 	# Stopping APPLaunch signals everything it started, and this process can still be one of
@@ -84,7 +104,7 @@ switch_now() {   # runs detached: the app that asked (in either launcher) is kil
 	# SIGTERM can no longer be stopped (also tested).
 	trap '' TERM HUP INT
 	sleep 1
-	if [ "$1" = native ]; then
+	if [ "$1" != m5 ]; then
 		nz-unit --user 1000 stop APPLaunch.service 2>/dev/null; restart_console
 	else
 		restart_console; sleep 1; ( trap - TERM HUP INT; exec nz-unit --user 1000 start APPLaunch.service )
@@ -133,9 +153,8 @@ status)
 	echo "brightness=$(get brightness "$(cat /sys/class/backlight/*/brightness 2>/dev/null | head -n1)")"
 	echo "screen-off=$(get screen-off 120)"
 	v=$(get volume ""); echo "volume=${v:+$v%}"
-	# no explicit choice: the M5 launcher takes over once it is installed (as its package intends)
-	[ -x /usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch ] && dl=m5 || dl=native
-	echo "launcher=$(get launcher $dl)"
+	echo "launcher=$(launcher_choice)"
+	f=$(cat /run/nz/launcher-fallback 2>/dev/null); [ -n "$f" ] && echo "launcher-now=$f (the chosen one kept stopping)"
 	echo "bootlog=$(get bootlog on)"
 	echo "wifi-country=$(get wifi-country 00)"
 	echo "wifi-boot=$(wifi_boot)"
@@ -146,6 +165,7 @@ status)
 	echo "ntp=$(get ntp on)"
 	has_password && echo "password=set" || echo "password=none"
 	[ -x /usr/share/APPLaunch/bin/M5CardputerZero-APPLaunch ] && echo "m5-launcher=installed" || echo "m5-launcher=absent"
+	[ -x $EZ ] && echo "emuzero-launcher=installed" || echo "emuzero-launcher=absent"
 	;;
 set)
 	case "$2" in
@@ -168,7 +188,12 @@ set)
 		[ "$3" -le 100 ] || die "volume: a number from 0 to 100"
 		set_volume "$3" || { echo "nz-admin: no playback volume control found" >&2; exit 5; }
 		put volume "$3" ;;
-	launcher) case "$3" in native|m5) put launcher "$3" ;; *) die "launcher: native or m5" ;; esac ;;
+	launcher)
+		case "$3" in
+		native|m5) put launcher "$3" ;;
+		emuzero) [ -x $EZ ] || die "the emuZero launcher is not installed"; put launcher emuzero ;;
+		*) die "launcher: native, emuzero or m5" ;;
+		esac ;;
 	bootlog) case "$3" in on|off) put bootlog "$3" ;; *) die "bootlog: on or off" ;; esac ;;
 	wifi-country)
 		case "$3" in [A-Z][A-Z]|00) ;; *) die "wifi-country: two capital letters, e.g. US, DE, JP (00 = world default)" ;; esac
@@ -228,6 +253,7 @@ usb)
 switch-launcher)
 	case "$2" in
 	native) put launcher native ;;
+	emuzero) [ -x $EZ ] || die "the emuZero launcher is not installed"; put launcher emuzero ;;
 	m5)	[ -x $APPL ] || die "the M5 launcher is not installed (Store > M5 Launcher)"
 		u=$(getent passwd 1000 | cut -d: -f1); h=$(getent passwd 1000 | cut -d: -f6)
 		[ -n "$u" ] && [ -f /usr/lib/systemd/user/APPLaunch.service ] || die "APPLaunch.service is missing"
@@ -235,27 +261,41 @@ switch-launcher)
 		install -d -o "$u" "$h/.config/systemd/user/default.target.wants"
 		ln -sfn /usr/lib/systemd/user/APPLaunch.service "$h/.config/systemd/user/default.target.wants/APPLaunch.service"
 		put launcher m5 ;;
-	*) die "switch-launcher: native or m5" ;;
+	*) die "switch-launcher: native, emuzero or m5" ;;
 	esac
+	rm -f /run/nz/launcher-fallback /run/nz/launcher-exits.*     # a new choice gets a fresh start
 	setsid "$0" switch-now "$2" </dev/null >/dev/null 2>&1 &
 	exit 0 ;;
 switch-now)     # internal: the second half of switch-launcher
-	case "$2" in native|m5) switch_now "$2" ;; *) die "switch-now: native or m5" ;; esac ;;
+	case "$2" in native|emuzero|m5) switch_now "$2" ;; *) die "switch-now: native, emuzero or m5" ;; esac ;;
 boot-launcher)
 	# Ways back to NimbleZero's launcher that need no SSH (the M5 launcher has none):
 	#  * a file named nz-native-launcher (or nz-native-launcher.txt) on the FAT boot
 	#    partition, put there from any PC; it is removed once used;
-	#  * Del (Backspace) or Esc held down while the device starts.
+	#  * Del (Backspace) or Esc held down while the device starts (M5 launcher or emuZero chosen).
 	for f in /boot/nz-native-launcher /boot/nz-native-launcher.txt; do
 		[ -e "$f" ] || continue
 		put launcher native
 		echo "nz-admin: $f found: NimbleZero's launcher chosen" >&2
 		mount -o remount,rw /boot 2>/dev/null && { rm -f "$f"; sync; mount -o remount,ro /boot; }
 	done
-	if m5_chosen && nz-keyheld -w 1500 14 1 2>/dev/null; then
-		put launcher native; echo "nz-admin: key held at start: NimbleZero's launcher chosen" >&2
+	# Checked once per boot (S60nz-units asks again later).  emuZero is started without
+	# waiting for the check (about 70 ms: closing each input device waits for the kernel);
+	# a held key then changes over to NimbleZero's launcher a moment later.  The M5
+	# launcher has no way back of its own, so it waits for the answer.
+	b=$(boot_choice)
+	if [ "$b" != native ] && [ ! -e /run/nz/keyheld-checked ]; then
+		: > /run/nz/keyheld-checked
+		if [ "$b" = emuzero ]; then
+			( nz-keyheld -w 1500 14 1 || exit 0
+			  put launcher native; echo "nz-admin: key held at start: NimbleZero's launcher chosen" > /dev/kmsg
+			  exec "$0" switch-now native ) </dev/null >/dev/null 2>&1 &
+		elif nz-keyheld -w 1500 14 1 2>/dev/null; then
+			put launcher native; echo "nz-admin: key held at start: NimbleZero's launcher chosen" >&2
+			b=native
+		fi
 	fi
-	m5_chosen && echo m5 || echo native ;;
+	echo "$b" ;;
 apply-volume) v=$(get volume ""); [ -n "$v" ] && set_volume "$v" ;;
 set-password) set_password "$2" ;;
 wifi) exec nz-wifi ;;

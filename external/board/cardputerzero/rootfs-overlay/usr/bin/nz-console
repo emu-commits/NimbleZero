@@ -1,14 +1,36 @@
 #!/bin/sh
 # Console supervisor used from /etc/inittab.
 #   tty1   : the LCD.  First boot: ask for a password for user "zero".  Then the
-#            launcher (NimbleZero's own, or M5Stack APPLaunch if the user chose it and it
-#            is installed), running as "zero".  Quitting the launcher gives a login prompt.
+#            launcher chosen in Options (NimbleZero's own, emuZero, or M5Stack APPLaunch),
+#            running as "zero".  Quitting NimbleZero's launcher gives a login prompt.
+#            A launcher that ends 3 times within a minute is replaced for the rest of this
+#            boot: the M5 launcher by emuZero, emuZero by NimbleZero's launcher.
 #   ttyS0  : the UART header (mini-UART, enable_uart=1): login prompt.
 # A port that does not exist is re-checked once a minute.
 tty=$1
 N=/data/etc/nz
+X=/run/nz/launcher-exits     # .NAME: uptime seconds of that launcher's recent exits
+as_zero() { su -s /bin/sh zero -c "export HOME=/home/zero USER=zero LOGNAME=zero XDG_RUNTIME_DIR=/run/user/1000; . /etc/profile 2>/dev/null; cd; exec $1" </dev/tty1 >/dev/tty1 2>&1; }
+third_exit() {   # note an exit of launcher $1; true when it is the third within 60 s
+	now=$(cut -d. -f1 /proc/uptime)
+	{ cat "$X.$1" 2>/dev/null; echo "$now"; } | awk -v n="$now" '$1 > n - 60' > "$X.$1.new"
+	mv "$X.$1.new" "$X.$1"
+	[ "$(wc -l < "$X.$1")" -ge 3 ]
+}
+fall_back() {    # $1 stopped 3 times: use launcher $2 ($3 = its name) until the next boot
+	echo "$2" > /run/nz/launcher-fallback
+	echo "nz-console: $1 ended 3 times in a minute; $2 for the rest of this boot" > /dev/kmsg 2>/dev/null
+	printf '\033[2J\033[H%s stopped 3 times\nwithin a minute.\n\n%s starts instead\nuntil the next start.\n\nOptions > Launcher at start\nchooses again.\n' "$4" "$3" > /dev/tty1
+	sleep 4
+}
 case "$tty" in
 tty1)
+	# emuZero: read its files into memory while the steps below run (about 3 MB from the SD
+	# card; reading them only when it starts costs the first frame ~0.2 s at boot).  Not the
+	# fonts: FreeType reads only the parts it needs, and reading all of them takes longer.
+	[ -x /usr/bin/emuzero-launcher ] && [ ! -e /run/nz/launcher-warm ] && { : > /run/nz/launcher-warm
+		cat /usr/bin/emuzero-launcher /usr/lib*/libfreetype.so.6 /usr/lib*/libpng16.so.16 /usr/lib*/libbz2.so.1.0 /usr/lib*/libz.so.1 \
+			/usr/share/emuzero/themes/*/theme.conf /usr/share/applications/*.desktop /usr/share/APPLaunch/applications/*.desktop >/dev/null 2>&1 & }
 	if [ ! -e $N/firstboot-done ] && [ -x /usr/sbin/nz-firstboot ] && [ ! -e /run/nz/firstboot-shown ]; then
 		: > /run/nz/firstboot-shown
 		nz-firstboot </dev/tty1 >/dev/tty1 2>&1
@@ -21,14 +43,35 @@ tty1)
 	# M5Stack APPLaunch owns the LCD when it is the chosen launcher AND really installed
 	# (a leftover "enabled" link on the data partition must never leave the screen blank).
 	# nz-admin also applies the ways back that need no SSH (marker file, key held at start).
-	if [ "$(nz-admin boot-launcher 2>/dev/null)" = m5 ]; then
+	L=$(nz-admin boot-launcher 2>/dev/null)
+	f=$(cat /run/nz/launcher-fallback 2>/dev/null) && [ -n "$f" ] && L=$f
+	[ -e /boot/nz-nolauncher ] || [ -e /run/nz/nolauncher ] && L=none
+	[ "$L" = native ] && [ ! -x /usr/bin/nz-launcher ] && L=none
+	if [ "$L" = m5 ]; then
 		echo 0 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null     # keep fbcon off the panel
-		exec sleep 2147483647
+		# nz-unit restarts APPLaunch when it ends and notes each end (APPLaunch.service.exits);
+		# a slow look every 10 s is enough to see 3 in a minute
+		E=/run/nz-units/user/APPLaunch.service.exits
+		: > "$E" 2>/dev/null
+		while sleep 10; do
+			now=$(cut -d. -f1 /proc/uptime)
+			[ "$(awk -v n="$now" '$1 > n - 60' "$E" 2>/dev/null | wc -l)" -ge 3 ] || continue
+			nz-unit --user 1000 stop APPLaunch.service 2>/dev/null
+			[ -x /usr/bin/emuzero-launcher ] && L=emuzero || L=native
+			[ $L = emuzero ] && n=emuZero || n="NimbleZero's launcher"
+			echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null
+			fall_back m5 $L "$n" "The M5 launcher"
+			break
+		done
 	fi
 	echo 1 > /sys/class/vtconsole/vtcon1/bind 2>/dev/null     # text apps need fbcon (after APPLaunch)
-	if [ -x /usr/bin/nz-launcher ] && [ ! -e /boot/nz-nolauncher ] && [ ! -e /run/nz/nolauncher ]; then
-		su -s /bin/sh zero -c 'export HOME=/home/zero USER=zero LOGNAME=zero XDG_RUNTIME_DIR=/run/user/1000; . /etc/profile 2>/dev/null; cd; exec nz-launcher' </dev/tty1 >/dev/tty1 2>&1
+	if [ "$L" = emuzero ]; then
+		# emuZero never quits by itself: an end is a crash (or a kill), so start it again
+		while as_zero emuzero-launcher; [ -x /usr/bin/emuzero-launcher ] && ! third_exit emuzero; do :; done
+		[ -x /usr/bin/emuzero-launcher ] && fall_back emuzero native "NimbleZero's launcher" emuZero
+		L=native
 	fi
+	[ "$L" = native ] && [ -x /usr/bin/nz-launcher ] && as_zero nz-launcher
 	exec /sbin/getty -L tty1 0 linux
 	;;
 *)
