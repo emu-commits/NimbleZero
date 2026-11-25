@@ -50,6 +50,14 @@ define EMUZERO_LAUNCHER_INSTALL_TARGET_CMDS
 		mkdir -p $(TARGET_DIR)/usr/share/emuzero/icons && \
 		$(INSTALL) -m 0644 $(@D)/icons/*.png $(@D)/icons/README.md $(TARGET_DIR)/usr/share/emuzero/icons/; \
 	fi
+	# Notes (apps/notes, from launcher sources that have it): the app, its Markdown guide,
+	# nz-clip (the shared clipboard from a shell) and its tile, which replaces the Editor's
+	if [ -x $(@D)/out/buildroot/emuzero-notes ]; then \
+		$(INSTALL) -D -m 0755 $(@D)/out/buildroot/emuzero-notes $(TARGET_DIR)/usr/bin/emuzero-notes && \
+		$(INSTALL) -D -m 0755 $(@D)/apps/notes/nz-clip $(TARGET_DIR)/usr/bin/nz-clip && \
+		$(INSTALL) -D -m 0644 $(@D)/apps/notes/guide.md $(TARGET_DIR)/usr/share/emuzero/notes/guide.md && \
+		$(INSTALL) -D -m 0644 $(@D)/apps/notes/emuzero-notes.desktop $(TARGET_DIR)/usr/share/applications/emuzero-notes.desktop; \
+	fi
 endef
 
 $(eval $(generic-package))

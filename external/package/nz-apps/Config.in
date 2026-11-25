@@ -4,5 +4,5 @@ config BR2_PACKAGE_NZ_APPS
 	help
 	  Launcher entries (.desktop files) and small applications that
 	  exercise the three application styles: a graphical nzui app
-	  (snake), terminal programs (shell, htop, nano when present)
+	  (snake), terminal programs (shell, htop when present)
 	  and networking tools (Wi-Fi setup, network info, SSH client).

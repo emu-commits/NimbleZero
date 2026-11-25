@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Editor
-Comment=nano text editor
-Exec=nano
-Terminal=true
