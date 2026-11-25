@@ -199,6 +199,10 @@ if os.path.exists(R("/etc/inittab")):
               "emuzero-launcher" in con and "third_exit" in con and "emuzero)" in adm
               and os.path.exists(R("/usr/bin/emuzero-at-start")) and os.path.exists(R("/usr/share/APPLaunch/applications/emuzero-launcher.desktop"))
               and os.path.isfile(R("/usr/share/emuzero/themes/minimal/theme.conf")))
+    if os.path.exists(R("/usr/bin/emuzero-notes")):
+        check("Notes: app, guide, nz-clip and its tile; the Editor (nano) tile gone, nano itself kept",
+              all(os.path.exists(R(f)) for f in ["/usr/bin/nz-clip", "/usr/share/emuzero/notes/guide.md", "/usr/share/applications/emuzero-notes.desktop"])
+              and not os.path.exists(R("/usr/share/applications/nano.desktop")))
     check("licence texts shipped in the image", os.path.isfile(R("/usr/share/licenses/NimbleZero/COPYING")) and os.path.isfile(R("/usr/share/licenses/manifest.csv")))
     check("no boot-time seed file write (S01seedrng removed)", not os.path.exists(R("/etc/init.d/S01seedrng")))
 check("config.txt disables the firmware framebuffer", parse_cfg(B("config.txt"))[0].get("max_framebuffers") == "0")

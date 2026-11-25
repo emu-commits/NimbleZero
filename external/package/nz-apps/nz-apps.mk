@@ -24,9 +24,12 @@ define NZ_APPS_INSTALL_TARGET_CMDS
 	mkdir -p $(TARGET_DIR)/usr/share/applications
 	$(INSTALL) -m 0644 $(@D)/*.desktop $(TARGET_DIR)/usr/share/applications/
 	# entries for programs this image does not contain are not installed
-	for e in htop nano; do \
+	for e in htop; do \
 		[ -x $(TARGET_DIR)/usr/bin/$$e ] || rm -f $(TARGET_DIR)/usr/share/applications/$$e.desktop; \
 	done
+	# the Editor tile (nano) is gone: Notes takes its place; nano stays for the Terminal.
+	# (removed here too, so a target directory from an older build loses it)
+	rm -f $(TARGET_DIR)/usr/share/applications/nano.desktop
 endef
 
 $(eval $(generic-package))
