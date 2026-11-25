@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-EMUZERO_LAUNCHER_VERSION = 88f19951263282c83b17fc550869c39a0658d8ab
+EMUZERO_LAUNCHER_VERSION = 50cbe5b39a6074f373df6d91bb012dc19828f057
 EMUZERO_LAUNCHER_SITE = $(call github,emu-commits,emuzero-launcher,$(EMUZERO_LAUNCHER_VERSION))
 EMUZERO_LAUNCHER_LICENSE = MIT
 EMUZERO_LAUNCHER_LICENSE_FILES = LICENSE
