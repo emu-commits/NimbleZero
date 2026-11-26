@@ -203,6 +203,10 @@ if os.path.exists(R("/etc/inittab")):
         check("Notes: app, guide, nz-clip and its tile; the Editor (nano) tile gone, nano itself kept",
               all(os.path.exists(R(f)) for f in ["/usr/bin/nz-clip", "/usr/share/emuzero/notes/guide.md", "/usr/share/applications/emuzero-notes.desktop"])
               and not os.path.exists(R("/usr/share/applications/nano.desktop")))
+    if os.path.exists(R("/usr/share/applications/calculator.desktop")):
+        check("Calculator tile: runs M5's Calculator only when it is installed (TryExec), with M5's picture",
+              "TryExec=/usr/share/APPLaunch/bin/M5CardputerZero-Calculator" in open(R("/usr/share/applications/calculator.desktop")).read()
+              and os.path.isfile(R("/usr/share/emuzero/icons/calculator.png")))
     check("licence texts shipped in the image", os.path.isfile(R("/usr/share/licenses/NimbleZero/COPYING")) and os.path.isfile(R("/usr/share/licenses/manifest.csv")))
     check("no boot-time seed file write (S01seedrng removed)", not os.path.exists(R("/etc/init.d/S01seedrng")))
 check("config.txt disables the firmware framebuffer", parse_cfg(B("config.txt"))[0].get("max_framebuffers") == "0")

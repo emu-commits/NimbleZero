@@ -58,6 +58,10 @@ define EMUZERO_LAUNCHER_INSTALL_TARGET_CMDS
 		$(INSTALL) -D -m 0644 $(@D)/apps/notes/guide.md $(TARGET_DIR)/usr/share/emuzero/notes/guide.md && \
 		$(INSTALL) -D -m 0644 $(@D)/apps/notes/emuzero-notes.desktop $(TARGET_DIR)/usr/share/applications/emuzero-notes.desktop; \
 	fi
+	# the tile M5's launcher has built in for its Calculator (shown while that program is there)
+	if [ -f $(@D)/apps/calculator.desktop ]; then \
+		$(INSTALL) -D -m 0644 $(@D)/apps/calculator.desktop $(TARGET_DIR)/usr/share/applications/calculator.desktop; \
+	fi
 endef
 
 $(eval $(generic-package))
