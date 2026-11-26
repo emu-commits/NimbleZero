@@ -203,6 +203,17 @@ if os.path.exists(R("/etc/inittab")):
         check("Notes: app, guide, nz-clip and its tile; the Editor (nano) tile gone, nano itself kept",
               all(os.path.exists(R(f)) for f in ["/usr/bin/nz-clip", "/usr/share/emuzero/notes/guide.md", "/usr/share/applications/emuzero-notes.desktop"])
               and not os.path.exists(R("/usr/share/applications/nano.desktop")))
+    if os.path.exists(R("/usr/bin/emuzero-wiki")):
+        pack = R("/usr/share/emuzero/wiki/survival.wpack")
+        guides = 0
+        if os.path.isfile(pack):
+            import sqlite3
+            db = sqlite3.connect(f"file:{pack}?mode=ro", uri=True)
+            guides = db.execute("SELECT count(*) FROM articles WHERE shelf = 1").fetchone()[0]
+            db.close()
+        check("Wiki: app, its tile and icon, the survival pack (118 guides) in the image",
+              guides == 118 and os.path.exists(R("/usr/share/applications/emuzero-wiki.desktop"))
+              and os.path.isfile(R("/usr/share/emuzero/icons/emuzero-wiki.png")))
     if os.path.exists(R("/usr/share/applications/calculator.desktop")):
         check("Calculator tile: runs M5's Calculator only when it is installed (TryExec), with M5's picture",
               "TryExec=/usr/share/APPLaunch/bin/M5CardputerZero-Calculator" in open(R("/usr/share/applications/calculator.desktop")).read()

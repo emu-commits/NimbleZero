@@ -3,10 +3,13 @@ config BR2_PACKAGE_EMUZERO_LAUNCHER
 	depends on BR2_USE_MMU
 	select BR2_PACKAGE_FREETYPE
 	select BR2_PACKAGE_LIBPNG
+	select BR2_PACKAGE_SQLITE
+	select BR2_PACKAGE_ZLIB
 	help
 	  The emuZero launcher: a thin LVGL front end for NimbleZero's
 	  apps, Settings, Wi-Fi and Store. Installs
-	  /usr/bin/emuzero-launcher and its themes; Options > Launcher
+	  /usr/bin/emuzero-launcher and its themes (and, from sources that
+	  have them, the Notes and Wiki apps); Options > Launcher
 	  at start offers it, and an entry in the M5 launcher's app
 	  list changes over to it.
 

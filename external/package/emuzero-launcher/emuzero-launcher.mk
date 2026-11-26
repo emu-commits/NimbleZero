@@ -8,7 +8,7 @@ EMUZERO_LAUNCHER_VERSION = 50cbe5b39a6074f373df6d91bb012dc19828f057
 EMUZERO_LAUNCHER_SITE = $(call github,emu-commits,emuzero-launcher,$(EMUZERO_LAUNCHER_VERSION))
 EMUZERO_LAUNCHER_LICENSE = MIT
 EMUZERO_LAUNCHER_LICENSE_FILES = LICENSE
-EMUZERO_LAUNCHER_DEPENDENCIES = freetype libpng host-pkgconf
+EMUZERO_LAUNCHER_DEPENDENCIES = freetype libpng host-pkgconf sqlite zlib
 
 # LVGL is built into the program from a pinned release tarball.
 EMUZERO_LAUNCHER_LVGL_VERSION = 9.2.2
@@ -57,6 +57,15 @@ define EMUZERO_LAUNCHER_INSTALL_TARGET_CMDS
 		$(INSTALL) -D -m 0755 $(@D)/apps/notes/nz-clip $(TARGET_DIR)/usr/bin/nz-clip && \
 		$(INSTALL) -D -m 0644 $(@D)/apps/notes/guide.md $(TARGET_DIR)/usr/share/emuzero/notes/guide.md && \
 		$(INSTALL) -D -m 0644 $(@D)/apps/notes/emuzero-notes.desktop $(TARGET_DIR)/usr/share/applications/emuzero-notes.desktop; \
+	fi
+	# Wiki (apps/wiki, from launcher sources that have it): the app, its tile and the survival
+	# pack (guides, triage, pictures, FM 21-76), kept built in the launcher's source (its
+	# `make check` holds it to apps/wiki/content). The Wikipedia pack is copied to the device
+	# separately.
+	if [ -x $(@D)/out/buildroot/emuzero-wiki ]; then \
+		$(INSTALL) -D -m 0755 $(@D)/out/buildroot/emuzero-wiki $(TARGET_DIR)/usr/bin/emuzero-wiki && \
+		$(INSTALL) -D -m 0644 $(@D)/apps/wiki/packs/survival.wpack $(TARGET_DIR)/usr/share/emuzero/wiki/survival.wpack && \
+		$(INSTALL) -D -m 0644 $(@D)/apps/wiki/emuzero-wiki.desktop $(TARGET_DIR)/usr/share/applications/emuzero-wiki.desktop; \
 	fi
 	# the tile M5's launcher has built in for its Calculator (shown while that program is there)
 	if [ -f $(@D)/apps/calculator.desktop ]; then \
